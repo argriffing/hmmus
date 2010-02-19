@@ -38,8 +38,18 @@ int forward(struct TM *ptm, FILE *fin_l, FILE *fout_f, FILE *fout_s)
    * @param fout_s: file of scaling values
    */
   double *likelihoods = malloc(ptm->order*sizeof(double));
+  if (!likelihoods)
+  {
+    fprintf(stderr, "failed to allocate likelihood array\n");
+    return 1;
+  }
   double *forward = malloc(ptm->order*sizeof(double));
-  while (fread(&likelihoods, sizeof(double), ptm->order, fin_l))
+  if (!forward)
+  {
+    fprintf(stderr, "failed to allocate forward array\n");
+    return 1;
+  }
+  while (fread(likelihoods, sizeof(double), ptm->order, fin_l))
   {
     ;
   }
@@ -99,9 +109,13 @@ int main(int argc, char* argv[])
     fprintf(stderr, "failed to open the scaling factor file for writing\n");
     return 1;
   }
+  printf("init tm\n");
   TM_init(&tm, 2);
+  printf("forward\n");
   forward(&tm, fin_l, fout_f, fout_s);
+  printf("del tm\n");
   TM_del(&tm);
+  printf("close files\n");
   fclose(fin_l);
   fclose(fout_f);
   fclose(fout_s);
