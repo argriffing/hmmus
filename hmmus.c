@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <inttypes.h>
+#include <sys/stat.h>
 
 struct TM
 {
@@ -106,8 +107,75 @@ int forward(struct TM *ptm, FILE *fin_l, FILE *fout_f, FILE *fout_s)
   return 0;
 }
 
-int backward(struct TM *ptm, FILE *fin_l, FILE *fout_f, FILE *fout_s)
+int backward(struct TM *ptm, FILE *fin_l, FILE *fin_s, FILE *fout_b)
 {
+  /*
+   * @param ptm: pointer to the transition matrix struct
+   * @param fin_l: file of the likelihood vectors open for reading
+   * @param fin_s: file of scaling vectors open for reading
+   * @param fout_b: file of backward vectors open for writing
+   */
+  int nhidden = ptm->order;
+  /* seek to near the end of the likelihood and scaling files */
+  int result = 0;
+  result |= fseek(fin_l, -nhidden*sizeof(double), SEEK_END);
+  result |= fseek(fin_s, -sizeof(double), SEEK_END);
+  if (result)
+  {
+    fprintf(stderr, "seek error\n");
+    return 1;
+  }
+  /* read the likelihood and scaling files in reverse */
+  double *ptmp;
+  double *b_curr = malloc(nhidden*sizeof(double));
+  double *b_prev = malloc(nhidden*sizeof(double));
+  double *l_curr = malloc(nhidden*sizeof(double));
+  double *l_prev = malloc(nhidden*sizeof(double));
+  int isource, isink;
+  int i;
+  double scaling_factor;
+  double p;
+  int64_t pos = 0;
+  do
+  {
+    /* read the likelihood vector and the scaling vector */
+    fread(l_curr, sizeof(double), nhidden, fin_l);
+    fread(&scaling_factor, sizeof(double), 1, fin_s);
+    if (pos)
+    {
+      for (i=0; i<nhidden; i++) b_curr[i] = 0.0;
+      for (isource=0; isource<nhidden; isource++)
+      {
+        for (isink=0; isink<nhidden; isink++)
+        {
+          p = ptm->value[isource*nhidden + isink];
+          p *= l_prev[isink] * b_prev[isink];
+          b_curr[isource] += p;
+        }
+      }
+    } else {
+      for (i=0; i<nhidden; i++) b_curr[i] = 1.0;
+    }
+    for (isource=0; isource<nhidden; isource++)
+    {
+      b_curr[isource] /= scaling_factor;
+    }
+    /* write the vector */
+    fwrite(b_curr, sizeof(double), nhidden, fout_b);
+    /* swap buffers and increment the position */
+    ptmp = b_curr; b_curr = b_prev; b_prev = ptmp;
+    ptmp = l_curr; l_curr = l_prev; l_prev = ptmp;
+    pos++;
+    /* seek back and break if we go too far */
+    result = 0;
+    result |= fseek(fin_l, -2*nhidden*sizeof(double), SEEK_CUR);
+    result |= fseek(fin_s, -2*sizeof(double), SEEK_CUR);
+  } while (!result);
+  /* clean up */
+  free(b_curr);
+  free(b_prev);
+  free(l_curr);
+  free(l_prev);
 }
 
 /*
@@ -143,44 +211,97 @@ int backward(struct TM *ptm, FILE *fin_l, FILE *fout_f, FILE *fout_s)
             obs_prev = obs
 */
 
+double* get_doubles(int ndoubles, const char *filename)
+{
+  /*
+   * Read some double precision floating point numbers from a binary file.
+   */
+  FILE *fin = fopen(filename, "rb");
+  if (!fin)
+  {
+    fprintf(stderr, "failed to open the file ");
+    fprintf(stderr, "%s for reading", filename);
+    return NULL;
+  }
+  struct stat buf;
+  stat(filename, &buf);
+  if (buf.st_size != ndoubles*sizeof(double))
+  {
+    fprintf(stderr, "unexpected number of bytes ");
+    fprintf(stderr, "in the file %s", filename);
+    return NULL;
+  }
+  double *arr = malloc(ndoubles*sizeof(double));
+  fread(arr, sizeof(double), ndoubles, fin);
+  fclose(fin);
+  return arr;
+}
+
+
 int main(int argc, char* argv[])
 {
-  /* set up */
-  FILE *fin_l = fopen("test.likelihoods", "rb");
+  FILE *fin_l, *fin_f, *fin_s, *fin_b;
+  FILE *fout_f, *fout_s, *fout_b;
+  int nstates=2;
+  /* read the stationary distribution */
+  double *distribution = get_doubles(nstates, "distribution.bin");
+  if (!distribution) return 1;
+  /* read the transition matrix */
+  double *transitions = get_doubles(nstates*nstates, "transitions.bin");
+  if (!transitions) return 1;
+  /* initialize the transition matrix object */
+  struct TM tm;
+  tm.order = nstates;
+  tm.value = transitions;
+  tm.initial_distn = distribution;
+  /* run the forward algorithm */
+  fin_l = fopen("likelihoods.bin", "rb");
   if (!fin_l)
   {
     fprintf(stderr, "failed to open the likelihoods file for reading\n");
     return 1;
   }
-  FILE *fout_f = fopen("test.forward", "wb");
+  fout_f = fopen("test.forward", "wb");
   if (!fout_f)
   {
     fprintf(stderr, "failed to open the forward vector file for writing\n");
     return 1;
   }
-  FILE *fout_s = fopen("test.scaling", "wb");
+  fout_s = fopen("test.scaling", "wb");
   if (!fout_s)
   {
     fprintf(stderr, "failed to open the scaling factor file for writing\n");
     return 1;
   }
-  /* initialize the transition matrix */
-  struct TM tm;
-  int nstates=2;
-  TM_init(&tm, nstates);
-  tm.value[0*nstates + 0] = .95;
-  tm.value[0*nstates + 1] = .05;
-  tm.value[1*nstates + 0] = .1;
-  tm.value[1*nstates + 1] = .9;
-  tm.initial_distn[0] = 2.0 / 3.0;
-  tm.initial_distn[1] = 1.0 / 3.0;
-  /* run the algorithm */
   forward(&tm, fin_l, fout_f, fout_s);
-  /* clean up */
-  TM_del(&tm);
   fclose(fin_l);
   fclose(fout_f);
   fclose(fout_s);
+  /* run the backward algorithm */
+  fin_l = fopen("likelihoods.bin", "rb");
+  if (!fin_l)
+  {
+    fprintf(stderr, "failed to open the likelihoods file for reading\n");
+    return 1;
+  }
+  fin_s = fopen("test.scaling", "rb");
+  if (!fin_s)
+  {
+    fprintf(stderr, "failed to open the scaling vector file for reading\n");
+    return 1;
+  }
+  fout_b = fopen("test.backward", "wb");
+  if (!fout_b)
+  {
+    fprintf(stderr, "failed to open the backward vector file for writing\n");
+    return 1;
+  }
+  backward(&tm, fin_l, fin_s, fout_b);
+  fclose(fin_l);
+  fclose(fin_s);
+  fclose(fout_b);
+  /* clean up */
+  TM_del(&tm);
   return 0;
 }
 
