@@ -1,9 +1,16 @@
 """
-Create some example likelihoods.
+Create some example files.
+This includes
+a file of likelihoods,
+a file of transition probabilities,
+and a file of stationary distribution probabilities.
 """
 
 import struct
 import sys
+
+import argparse
+
 
 def get_example_rolls():
     """
@@ -42,8 +49,21 @@ def get_example_rolls():
     estimates = [x for x in ''.join(estimate_lines)]
     return observations, estimates
 
-def main():
-    #transition_matrix = np.array([[0.95, 0.05], [0.1, 0.9]])
+def write_distribution(fout):
+    p_fair = 2.0 / 3.0
+    p_loaded = 1.0 / 3.0
+    for p in (p_fair, p_loaded):
+        bstr = struct.pack('d', p)
+        fout.write(bstr)
+
+def write_transitions(fout):
+    transition_matrix = [[0.95, 0.05], [0.1, 0.9]]
+    for row in transition_matrix:
+        for p in row:
+            bstr = struct.pack('d', p)
+            fout.write(bstr)
+
+def write_likelihoods(fout):
     observations, estimates = get_example_rolls()
     fair = [None, 1/6.0, 1/6.0, 1/6.0, 1/6.0, 1/6.0, 1/6.0]
     loaded = [None, 0.1, 0.1, 0.1, 0.1, 0.1, 0.5]
@@ -57,7 +77,23 @@ def main():
             # put the float into a binary form
             bstr = struct.pack('d', value)
             # write the binary value
-            sys.stdout.write(bstr)
+            fout.write(bstr)
+
+def main(args):
+    with open(args.likelihoods_out, 'wb') as fout:
+        write_likelihoods(fout)
+    with open(args.transitions_out, 'wb') as fout:
+        write_transitions(fout)
+    with open(args.distribution_out, 'wb') as fout:
+        write_distribution(fout)
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--likelihoods_out', default='likelihoods.bin',
+            help='likelihoods are written here')
+    parser.add_argument('--transitions_out', default='transitions.bin',
+            help='the transition matrix is written here')
+    parser.add_argument('--distribution_out', default='distribution.bin',
+            help='the initial distribution is written here')
+    args = parser.parse_args()
+    main(args)
