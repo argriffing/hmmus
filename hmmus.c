@@ -250,7 +250,7 @@ int main(int argc, char* argv[])
 {
   FILE *fin_l, *fin_f, *fin_s, *fin_b;
   FILE *fout_f, *fout_s, *fout_b, *fout_d;
-  int nstates=4;
+  int nstates=3;
   /* read the stationary distribution */
   double *distribution = get_doubles(nstates, "distribution.bin");
   if (!distribution) return 1;
