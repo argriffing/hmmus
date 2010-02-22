@@ -34,8 +34,13 @@ double* get_doubles(int ndoubles, const char *filename)
     return NULL;
   }
   double *arr = malloc(ndoubles*sizeof(double));
-  fread(arr, sizeof(double), ndoubles, fin);
+  size_t nbytes = fread(arr, sizeof(double), ndoubles, fin);
   fclose(fin);
+  if (!nbytes)
+  {
+    fprintf(stderr, "no bytes read from %s\n", filename);
+    return NULL;
+  }
   return arr;
 }
 
@@ -175,6 +180,7 @@ int backward(struct TM *ptm, FILE *fin_l, FILE *fin_s, FILE *fout_b)
     return 1;
   }
   /* read the likelihood and scaling files in reverse */
+  size_t nbytes;
   double *ptmp;
   double *b_curr = malloc(nhidden*sizeof(double));
   double *b_prev = malloc(nhidden*sizeof(double));
@@ -188,8 +194,8 @@ int backward(struct TM *ptm, FILE *fin_l, FILE *fin_s, FILE *fout_b)
   do
   {
     /* read the likelihood vector and the scaling vector */
-    fread(l_curr, sizeof(double), nhidden, fin_l);
-    fread(&scaling_factor, sizeof(double), 1, fin_s);
+    nbytes = fread(l_curr, sizeof(double), nhidden, fin_l);
+    nbytes = fread(&scaling_factor, sizeof(double), 1, fin_s);
     if (pos)
     {
       for (i=0; i<nhidden; i++) b_curr[i] = 0.0;
@@ -237,6 +243,7 @@ int posterior(struct TM *ptm, FILE *fi_f, FILE *fi_s, FILE *fi_b, FILE *fo_d)
    * @param fi_b: file of backward vectors open for reading
    * @param fo_d: file of posterior probability vectors open for writing
    */
+  size_t nbytes;
   int nhidden = ptm->order;
   int result;
   /* seek to near the end of the backward file */
@@ -253,9 +260,9 @@ int posterior(struct TM *ptm, FILE *fi_f, FILE *fi_s, FILE *fi_b, FILE *fo_d)
   double *arr_b = malloc(nhidden*sizeof(double));
   do
   {
-    fread(arr_f, sizeof(double), nhidden, fi_f);
-    fread(arr_b, sizeof(double), nhidden, fi_b);
-    fread(&scaling_factor, sizeof(double), 1, fi_s);
+    nbytes = fread(arr_f, sizeof(double), nhidden, fi_f);
+    nbytes = fread(arr_b, sizeof(double), nhidden, fi_b);
+    nbytes = fread(&scaling_factor, sizeof(double), 1, fi_s);
     /* construct and write the output vector */
     for (i=0; i<nhidden; i++)
     {
