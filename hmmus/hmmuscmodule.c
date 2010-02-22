@@ -8,6 +8,37 @@
 /* REMOVE */
 #include <math.h>
 
+double* get_doubles(int ndoubles, const char *filename)
+{
+  /*
+   * Read some double precision floating point numbers from a binary file.
+   */
+  struct stat buf;
+  int result = stat(filename, &buf);
+  if (result < 0)
+  {
+    fprintf(stderr, "the file %s was not found\n", filename);
+    return NULL;
+  }
+  if (buf.st_size != ndoubles*sizeof(double))
+  {
+    fprintf(stderr, "unexpected number of bytes ");
+    fprintf(stderr, "in the file %s\n", filename);
+    return NULL;
+  }
+  FILE *fin = fopen(filename, "rb");
+  if (!fin)
+  {
+    fprintf(stderr, "failed to open the file ");
+    fprintf(stderr, "%s for reading\n", filename);
+    return NULL;
+  }
+  double *arr = malloc(ndoubles*sizeof(double));
+  fread(arr, sizeof(double), ndoubles, fin);
+  fclose(fin);
+  return arr;
+}
+
 struct TM
 {
   /*
@@ -27,6 +58,19 @@ int TM_init(struct TM *p, int order)
   p->order = order;
   p->value = malloc(order*order*sizeof(double));
   p->initial_distn = malloc(order*sizeof(double));
+  return 0;
+}
+
+int TM_init_from_names(struct TM *p, int nstates,
+    const char *distribution_name, const char *transitions_name)
+{
+  double *distribution = get_doubles(nstates, "distribution.bin");
+  if (!distribution) return 1;
+  double *transitions = get_doubles(nstates*nstates, "transitions.bin");
+  if (!transitions) return 1;
+  p->order = nstates;
+  p->value = transitions;
+  p->initial_distn = distribution;
   return 0;
 }
 
@@ -227,31 +271,7 @@ int posterior(struct TM *ptm, FILE *fi_f, FILE *fi_s, FILE *fi_b, FILE *fo_d)
   return 0;
 }
 
-double* get_doubles(int ndoubles, const char *filename)
-{
-  /*
-   * Read some double precision floating point numbers from a binary file.
-   */
-  FILE *fin = fopen(filename, "rb");
-  if (!fin)
-  {
-    fprintf(stderr, "failed to open the file ");
-    fprintf(stderr, "%s for reading", filename);
-    return NULL;
-  }
-  struct stat buf;
-  stat(filename, &buf);
-  if (buf.st_size != ndoubles*sizeof(double))
-  {
-    fprintf(stderr, "unexpected number of bytes ");
-    fprintf(stderr, "in the file %s", filename);
-    return NULL;
-  }
-  double *arr = malloc(ndoubles*sizeof(double));
-  fread(arr, sizeof(double), ndoubles, fin);
-  fclose(fin);
-  return arr;
-}
+
 
 int do_forward(struct TM *ptm,
     const char *likelihoods_name, const char *forward_name,
@@ -970,14 +990,39 @@ hello_world(PyObject *self, PyObject *args)
 {
   const char *command;
   int sts = 42;
-    if (!PyArg_ParseTuple(args, "s", &command))
-      return NULL;
+  if (!PyArg_ParseTuple(args, "s", &command))
+    return NULL;
   printf("ohai %s", command);
   return Py_BuildValue("i", sts);
 }
 
+static PyObject *
+posterior_python(PyObject *self, PyObject *args)
+{
+  int nstates;
+  const char *distn_name;
+  const char *transitions_name;
+  const char *forward_name;
+  const char *scaling_name;
+  const char *backward_name;
+  const char *posterior_name;
+  int ok = PyArg_ParseTuple(args, "issssss", &nstates,
+      &distn_name, &transitions_name, &forward_name, &scaling_name,
+      &backward_name, &posterior_name);
+  if (!ok) return NULL;
+  printf("nstates: %d\n", nstates);
+  printf("distribution filename: %s\n", distn_name);
+  printf("transitions filename: %s\n", transitions_name);
+  printf("forward array filename: %s\n", forward_name);
+  printf("scaling array filename: %s\n", scaling_name);
+  printf("backward array filename: %s\n", backward_name);
+  printf("posterior array filename: %s\n", posterior_name);
+  return Py_BuildValue("i", 42);
+}
+
 static PyMethodDef HmmuscMethods[] = {
-  {"hello", hello_world, METH_VARARGS, "Say hello to the world."},
+  {"hello", hello_world, METH_VARARGS, "Say hi."},
+  {"posterior", posterior_python, METH_VARARGS, "Posterior decoding."},
   {NULL, NULL, 0, NULL}
 };
 
