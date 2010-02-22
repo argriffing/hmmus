@@ -10,6 +10,7 @@ include TODO
 include FAQ
 
 include setup.py
+include hmmuscmodule.c
 
 recursive-include doc *.html
 recursive-include example *.py
