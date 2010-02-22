@@ -1,0 +1,18 @@
+include AUTHORS
+include CHANGELOG
+include COPYING
+include INSTALL
+include MANIFEST
+include NEWS
+include README
+include THANKS
+include TODO
+include FAQ
+
+include setup.py
+
+recursive-include doc *.html
+recursive-include example *.py
+recursive-include test *.py
+
+recursive-include hmmus *.py
