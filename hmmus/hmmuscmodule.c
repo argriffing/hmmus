@@ -5,6 +5,8 @@
 #include <inttypes.h>
 #include <sys/stat.h>
 
+#include "notpythonc.h"
+
 double* get_doubles(int ndoubles, const char *filename)
 {
   /*
@@ -585,8 +587,18 @@ posterior_python(PyObject *self, PyObject *args)
   return Py_BuildValue("i", 42);
 }
 
+static PyObject *
+four_times(PyObject *self, PyObject *args)
+{
+  int value;
+  if (!PyArg_ParseTuple(args, "i", &value))
+    return NULL;
+  return Py_BuildValue("i", twice(value)*2);
+}
+
 static PyMethodDef HmmuscMethods[] = {
   {"hello", hello_world, METH_VARARGS, "Say hi."},
+  {"four_times", four_times, METH_VARARGS, "Multiply an integer by four."},
   {"posterior", posterior_python, METH_VARARGS, "Posterior decoding."},
   {NULL, NULL, 0, NULL}
 };
