@@ -15,6 +15,9 @@ include hmmuscmodule.c
 include notpythonc.c
 include notpythonc.h
 
+include hmmguts/hmmguts.c
+include hmmguts/hmmguts.h
+
 recursive-include doc *.html
 recursive-include example *.py
 recursive-include test *.py
