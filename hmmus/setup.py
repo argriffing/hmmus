@@ -21,7 +21,7 @@ hummusc = Extension(
 
 setup(
         name = 'hmmus',
-        version = '0.0.18',
+        version = '0.0.20',
         author = 'Alex Griffing',
         author_email = 'argriffi@ncsu.edu',
         url = 'http://github.com/argriffing/hmmus',

@@ -12,6 +12,8 @@ include FAQ
 include setup.py
 include hmmuscmodule.c
 
+include hello.c
+
 include notpythonc.c
 include notpythonc.h
 
