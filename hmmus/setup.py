@@ -16,12 +16,11 @@ from distutils.core import Extension
 
 hummusc = Extension(
         name='hmmusc',
-        include_dirst=['.'],
         sources=['hmmuscmodule.c', 'notpythonc.c'])
 
 setup(
         name = 'hmmus',
-        version = '0.0.21',
+        version = '0.0.24',
         author = 'Alex Griffing',
         author_email = 'argriffi@ncsu.edu',
         url = 'http://github.com/argriffing/hmmus',

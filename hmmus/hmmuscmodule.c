@@ -1,6 +1,7 @@
 #include <Python.h>
 
 #include "hmmguts/hmmguts.h"
+#include "notpythonc.h"
 
 static PyObject *
 hello_world(PyObject *self, PyObject *args)
