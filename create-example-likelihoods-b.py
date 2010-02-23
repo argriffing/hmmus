@@ -8,33 +8,25 @@ ftp://selab.janelia.org/pub/publications/Eddy-ATG4/Eddy-ATG4-reprint.pdf
 NATURE BIOTECHNOLOGY VOLUME 22 NUMBER 10 OCTOBER 2004
 """
 
-import struct
-import sys
-
 import argparse
+import numpy as np
 
 
-def write_distribution(fout):
+def get_distribution(fout):
     p_E = 1.0
-    p_5 = 0
-    p_I = 0
-    p_x = 0
-    for p in (p_E, p_5, p_I, p_x):
-        bstr = struct.pack('d', p)
-        fout.write(bstr)
+    p_5 = 0.0
+    p_I = 0.0
+    p_x = 0.0
+    return np.array([p_E, p_5, p_I, p_x])
 
-def write_transitions(fout):
-    transition_matrix = [
-            [0.9, 0.1, 0.0, 0.0],
-            [0.0, 0.0, 1.0, 0.0],
-            [0.0, 0.0, 0.9, 0.1],
-            [0.0, 0.0, 0.0, 1.0]]
-    for row in transition_matrix:
-        for p in row:
-            bstr = struct.pack('d', p)
-            fout.write(bstr)
+def get_transitions(fout):
+    return np.array([
+        [0.9, 0.1, 0.0, 0.0],
+        [0.0, 0.0, 1.0, 0.0],
+        [0.0, 0.0, 0.9, 0.1],
+        [0.0, 0.0, 0.0, 1.0]])
 
-def write_likelihoods(fout):
+def get_likelihoods(fout):
     observations = 'CTTCATGTGAAAGCAGACGTAAGTCAx'
     d_E = {'A':0.25, 'C':0.25, 'G':0.25, 'T':0.25, 'x':0.0}
     d_5 = {'A':0.05, 'C':0.00, 'G':0.95, 'T':0.00, 'x':0.0}
@@ -43,22 +35,15 @@ def write_likelihoods(fout):
     distns = (d_E, d_5, d_I, d_x)
     for distn in distns:
         assert abs(1.0 - sum(distn.values())) < 1e-10
-    for obs in observations:
-        for distn in distns:
-            # get the python float
-            value = distn[obs]
-            # put the float into a binary form
-            bstr = struct.pack('d', value)
-            # write the binary value
-            fout.write(bstr)
+    return np.array([[d[obs] for d in distns] for obs in observations])
 
 def main(args):
     with open(args.likelihoods_out, 'wb') as fout:
-        write_likelihoods(fout)
+        get_likelihoods().tofile(fout)
     with open(args.transitions_out, 'wb') as fout:
-        write_transitions(fout)
+        get_transitions().tofile(fout)
     with open(args.distribution_out, 'wb') as fout:
-        write_distribution(fout)
+        get_distribution().tofile(fout)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

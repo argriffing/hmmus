@@ -199,25 +199,25 @@ int posterior(struct TM *ptm, FILE *fi_f, FILE *fi_s, FILE *fi_b, FILE *fo_d)
   /* multiply stuff together and write to the output file */
   int i;
   double scaling_factor;
-  double *forward = malloc(nhidden*sizeof(double));
-  double *backward = malloc(nhidden*sizeof(double));
+  double *arr_f = malloc(nhidden*sizeof(double));
+  double *arr_b = malloc(nhidden*sizeof(double));
   do
   {
-    fread(forward, sizeof(double), nhidden, fi_f);
-    fread(backward, sizeof(double), nhidden, fi_b);
+    fread(arr_f, sizeof(double), nhidden, fi_f);
+    fread(arr_b, sizeof(double), nhidden, fi_b);
     fread(&scaling_factor, sizeof(double), 1, fi_s);
     /* construct and write the output vector */
     for (i=0; i<nhidden; i++)
     {
-      forward[i] *= scaling_factor * backward[i];
+      arr_f[i] *= scaling_factor * arr_b[i];
     }
-    fwrite(forward, sizeof(double), nhidden, fo_d);
+    fwrite(arr_f, sizeof(double), nhidden, fo_d);
     /* go back a bit */
     result = fseek(fi_b, -2*nhidden*sizeof(double), SEEK_CUR);
   } while (!result);
   /* clean up */
-  free(forward);
-  free(backward);
+  free(arr_f);
+  free(arr_b);
 }
 
 double* get_doubles(int ndoubles, const char *filename)

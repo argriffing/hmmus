@@ -6,10 +6,8 @@ a file of transition probabilities,
 and a file of stationary distribution probabilities.
 """
 
-import struct
-import sys
-
 import argparse
+import numpy as np
 
 
 def get_example_rolls():
@@ -49,43 +47,31 @@ def get_example_rolls():
     estimates = [x for x in ''.join(estimate_lines)]
     return observations, estimates
 
-def write_distribution(fout):
+def get_distribution():
     p_fair = 2.0 / 3.0
     p_loaded = 1.0 / 3.0
-    for p in (p_fair, p_loaded):
-        bstr = struct.pack('d', p)
-        fout.write(bstr)
+    return np.array([p_fair, p_loaded])
 
-def write_transitions(fout):
-    transition_matrix = [[0.95, 0.05], [0.1, 0.9]]
-    for row in transition_matrix:
-        for p in row:
-            bstr = struct.pack('d', p)
-            fout.write(bstr)
+def get_transitions():
+    return np.array([[0.95, 0.05], [0.1, 0.9]])
 
-def write_likelihoods(fout):
+def get_likelihoods():
     observations, estimates = get_example_rolls()
     fair = [None, 1/6.0, 1/6.0, 1/6.0, 1/6.0, 1/6.0, 1/6.0]
     loaded = [None, 0.1, 0.1, 0.1, 0.1, 0.1, 0.5]
-    for distn in (fair, loaded):
+    distns = (fair, loaded)
+    for distn in distns:
         assert len(distn) == 7
         assert abs(1.0 - sum(distn[1:])) < 1e-10
-    for obs in observations:
-        for distn in (fair, loaded):
-            # get the python float
-            value = distn[obs]
-            # put the float into a binary form
-            bstr = struct.pack('d', value)
-            # write the binary value
-            fout.write(bstr)
+    return np.array([[d[obs] for d in distns] for obs in observations])
 
 def main(args):
     with open(args.likelihoods_out, 'wb') as fout:
-        write_likelihoods(fout)
+        get_likelihoods().tofile(fout)
     with open(args.transitions_out, 'wb') as fout:
-        write_transitions(fout)
+        get_transitions().tofile(fout)
     with open(args.distribution_out, 'wb') as fout:
-        write_distribution(fout)
+        get_distribution().tofile(fout)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

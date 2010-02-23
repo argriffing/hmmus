@@ -7,31 +7,23 @@ and a file of stationary distribution probabilities.
 http://www.cs.cmu.edu/~nasmith/papers/smith.tut04a.pdf
 """
 
-import struct
-import sys
-
 import argparse
+import numpy as np
 
 
-def write_distribution(fout):
+def get_distribution():
     p_1 = 1.0
-    p_2 = 0
-    p_x = 0
-    for p in (p_1, p_2, p_x):
-        bstr = struct.pack('d', p)
-        fout.write(bstr)
+    p_2 = 0.0
+    p_x = 0.0
+    return np.array([p_1, p_2, p_x])
 
-def write_transitions(fout):
-    transition_matrix = [
+def get_transitions():
+    return np.array([
             [1/8.0, 3/4.0, 1/8.0],
             [1/2.0, 1/4.0, 1/4.0],
-            [0, 0, 1.0]]
-    for row in transition_matrix:
-        for p in row:
-            bstr = struct.pack('d', p)
-            fout.write(bstr)
+            [0, 0, 1.0]])
 
-def write_likelihoods(fout):
+def get_likelihoods():
     observations = 'XXXXx'
     d_1 = {'X':7/8.0, 'Y':1/8.0, 'x':0.00}
     d_2 = {'X':1/16.0, 'Y':15/16.0, 'x':0.00}
@@ -39,22 +31,15 @@ def write_likelihoods(fout):
     distns = (d_1, d_2, d_x)
     for distn in distns:
         assert abs(1.0 - sum(distn.values())) < 1e-10
-    for obs in observations:
-        for distn in distns:
-            # get the python float
-            value = distn[obs]
-            # put the float into a binary form
-            bstr = struct.pack('d', value)
-            # write the binary value
-            fout.write(bstr)
+    return np.array([[d[obs] for d in distns] for obs in observations])
 
 def main(args):
     with open(args.likelihoods_out, 'wb') as fout:
-        write_likelihoods(fout)
+        get_likelihoods().tofile(fout)
     with open(args.transitions_out, 'wb') as fout:
-        write_transitions(fout)
+        get_transitions().tofile(fout)
     with open(args.distribution_out, 'wb') as fout:
-        write_distribution(fout)
+        get_distribution().tofile(fout)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
