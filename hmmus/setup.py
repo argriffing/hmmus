@@ -16,7 +16,7 @@ from distutils.core import Extension
 
 hummusc = Extension(
         name='hmmusc',
-        sources=['hmmuscmodule.c', 'notpythonc.c', 'hmmguts/hmmguts.c'])
+        sources=['hmmuscmodule.c', 'hmmguts/hmmguts.c'])
 
 setup(
         name = 'hmmus',

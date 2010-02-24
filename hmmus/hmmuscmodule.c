@@ -1,7 +1,6 @@
 #include <Python.h>
 
 #include "hmmguts/hmmguts.h"
-#include "notpythonc.h"
 
 static PyObject *HmmuscError;
 
@@ -109,15 +108,6 @@ backward_python(PyObject *self, PyObject *args)
   }
   TM_del(&tm);
   return Py_BuildValue("i", 0);
-}
-
-static PyObject *
-four_times(PyObject *self, PyObject *args)
-{
-  int value;
-  if (!PyArg_ParseTuple(args, "i", &value))
-    return NULL;
-  return Py_BuildValue("i", twice(value)*2);
 }
 
 static PyMethodDef HmmuscMethods[] = {
