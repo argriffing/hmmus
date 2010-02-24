@@ -31,12 +31,12 @@ classifiers = [
         'Intended Audience :: Science/Research',
         'License :: OSI Approved :: MIT License',
         'Natural Language :: English',
-        'Operating System :: Posix :: Linux',
+        'Operating System :: POSIX :: Linux',
         'Programming Language :: Python :: 2.6',
         'Programming Language :: C',
         'Programming Language :: Unix Shell',
         'Topic :: Scientific/Engineering :: Bio-Informatics',
-        'Topic :: Scientific/Engineering :: Artificial Intelligence'
+        'Topic :: Scientific/Engineering :: Artificial Intelligence',
         'Topic :: Scientific/Engineering :: Information Analysis']
 
 scripts = [
@@ -47,7 +47,7 @@ scripts = [
 
 setup(
         name = 'hmmus',
-        version = '0.1.0',
+        version = '0.1.1',
         author = 'Alex Griffing',
         author_email = 'argriffi@ncsu.edu',
         maintainer = 'Alex Griffing',
