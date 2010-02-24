@@ -14,21 +14,21 @@ import argparse
 import numpy as np
 
 
-def get_distribution(fout):
+def get_distribution():
     p_E = 1.0
     p_5 = 0.0
     p_I = 0.0
     p_x = 0.0
     return np.array([p_E, p_5, p_I, p_x])
 
-def get_transitions(fout):
+def get_transitions():
     return np.array([
         [0.9, 0.1, 0.0, 0.0],
         [0.0, 0.0, 1.0, 0.0],
         [0.0, 0.0, 0.9, 0.1],
         [0.0, 0.0, 0.0, 1.0]])
 
-def get_likelihoods(fout):
+def get_likelihoods():
     observations = 'CTTCATGTGAAAGCAGACGTAAGTCAx'
     d_E = {'A':0.25, 'C':0.25, 'G':0.25, 'T':0.25, 'x':0.0}
     d_5 = {'A':0.05, 'C':0.00, 'G':0.95, 'T':0.00, 'x':0.0}

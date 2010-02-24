@@ -20,13 +20,13 @@ hummusc = Extension(
 
 scripts = [
         'bin/create-example-likelihoods-a.py',
-        'bin/create-example-likelihoods-a.py',
-        'bin/create-example-likelihoods-a.py',
+        'bin/create-example-likelihoods-b.py',
+        'bin/create-example-likelihoods-c.py',
         'bin/view-matrix.py']
 
 setup(
         name = 'hmmus',
-        version = '0.0.33',
+        version = '0.0.36',
         author = 'Alex Griffing',
         author_email = 'argriffi@ncsu.edu',
         url = 'http://github.com/argriffing/hmmus',

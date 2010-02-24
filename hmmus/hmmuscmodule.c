@@ -112,7 +112,6 @@ backward_python(PyObject *self, PyObject *args)
 
 static PyMethodDef HmmuscMethods[] = {
   {"hello", hello_world, METH_VARARGS, "Say hi."},
-  {"four_times", four_times, METH_VARARGS, "Multiply an integer by four."},
   {"posterior", posterior_python, METH_VARARGS, "Posterior decoding."},
   {"backward", backward_python, METH_VARARGS, "Backward algorithm."},
   {"forward", forward_python, METH_VARARGS, "Forward algorithm."},
