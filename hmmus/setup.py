@@ -18,6 +18,21 @@ hummusc = Extension(
         name='hmmusc',
         sources=['hmmuscmodule.c', 'hmmguts/hmmguts.c'])
 
+classifiers = [
+        'Development Status :: 2 - Pre-Alpha',
+        'Environment :: Console',
+        'Intended Audience :: Developers',
+        'Intended Audience :: Science/Research',
+        'License :: OSI Approved :: MIT License',
+        'Natural Language :: English',
+        'Operating System :: Posix :: Linux',
+        'Programming Language :: Python :: 2.6',
+        'Programming Language :: C',
+        'Programming Language :: Unix Shell',
+        'Topic :: Scientific/Engineering :: Bio-Informatics',
+        'Topic :: Scientific/Engineering :: Artificial Intelligence'
+        'Topic :: Scientific/Engineering :: Information Analysis']
+
 scripts = [
         'bin/create-example-likelihoods-a.py',
         'bin/create-example-likelihoods-b.py',
@@ -26,11 +41,15 @@ scripts = [
 
 setup(
         name = 'hmmus',
-        version = '0.0.36',
+        version = '0.1.0',
         author = 'Alex Griffing',
         author_email = 'argriffi@ncsu.edu',
+        maintainer = 'Alex Griffing',
+        maintainer_email = 'argriffi@ncsu.edu',
+        license = 'http://www.opensource.org/licenses/mit-license.html',
         url = 'http://github.com/argriffing/hmmus',
         ext_modules = [hummusc],
         packages = ['hmmus'],
+        classifiers = classifiers,
         scripts = scripts,
         description = 'Hidden Markov model stuff')
