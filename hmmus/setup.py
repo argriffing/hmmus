@@ -53,7 +53,7 @@ setup(
         maintainer = 'Alex Griffing',
         maintainer_email = 'argriffi@ncsu.edu',
         url = 'http://github.com/argriffing/hmmus',
-        description = 'Hidden Markov model stuff'
+        description = 'Hidden Markov model stuff',
         classifiers = classifiers,
         platforms = ['linux'],
         license = 'http://www.opensource.org/licenses/mit-license.html',
