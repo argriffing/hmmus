@@ -37,7 +37,8 @@ classifiers = [
         'Programming Language :: Unix Shell',
         'Topic :: Scientific/Engineering :: Bio-Informatics',
         'Topic :: Scientific/Engineering :: Artificial Intelligence',
-        'Topic :: Scientific/Engineering :: Information Analysis']
+        'Topic :: Scientific/Engineering :: Information Analysis',
+        'Topic :: Software Development :: Libraries :: Python Modules']
 
 scripts = [
         'bin/create-example-likelihoods-a.py',
@@ -47,13 +48,14 @@ scripts = [
 
 setup(
         name = 'hmmus',
-        version = '0.1.1',
+        version = '0.1.3',
         author = 'Alex Griffing',
         author_email = 'argriffi@ncsu.edu',
         maintainer = 'Alex Griffing',
         maintainer_email = 'argriffi@ncsu.edu',
         url = 'http://github.com/argriffing/hmmus',
         description = 'Hidden Markov model stuff',
+        long_description = open('README').read(),
         classifiers = classifiers,
         platforms = ['linux'],
         license = 'http://www.opensource.org/licenses/mit-license.html',
