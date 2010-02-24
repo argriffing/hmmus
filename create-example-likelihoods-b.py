@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 """
 Create some example files.
 This includes
