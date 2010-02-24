@@ -20,3 +20,5 @@ recursive-include example *.py
 recursive-include test *.py
 
 recursive-include hmmus *.py
+
+recursive-include bin *
