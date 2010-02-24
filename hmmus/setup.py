@@ -7,6 +7,12 @@ she installs the module from pypi.
 Here is some documentation for this process.
 http://docs.python.org/extending/building.html
 
+More info:
+http://wiki.python.org/moin/Distutils/Tutorial
+
+Register the metadata with pypi as follows:
+python setup.py register
+
 Send to pypi as follows:
 python setup.py sdist upload --show-response
 """
@@ -46,10 +52,11 @@ setup(
         author_email = 'argriffi@ncsu.edu',
         maintainer = 'Alex Griffing',
         maintainer_email = 'argriffi@ncsu.edu',
-        license = 'http://www.opensource.org/licenses/mit-license.html',
         url = 'http://github.com/argriffing/hmmus',
+        description = 'Hidden Markov model stuff'
+        classifiers = classifiers,
+        platforms = ['linux'],
+        license = 'http://www.opensource.org/licenses/mit-license.html',
         ext_modules = [hummusc],
         packages = ['hmmus'],
-        classifiers = classifiers,
-        scripts = scripts,
-        description = 'Hidden Markov model stuff')
+        scripts = scripts)
