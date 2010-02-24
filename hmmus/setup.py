@@ -26,7 +26,7 @@ scripts = [
 
 setup(
         name = 'hmmus',
-        version = '0.0.32',
+        version = '0.0.33',
         author = 'Alex Griffing',
         author_email = 'argriffi@ncsu.edu',
         url = 'http://github.com/argriffing/hmmus',
