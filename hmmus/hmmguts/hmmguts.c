@@ -41,23 +41,36 @@ double* get_doubles(int ndoubles, const char *filename)
   return arr;
 }
 
-int TM_init(struct TM *p, int order)
+int TM_init(struct TM *p, int nstates)
 {
-  /* constructor */
-  p->order = order;
-  p->value = malloc(order*order*sizeof(double));
-  p->initial_distn = malloc(order*sizeof(double));
+  p->order = nstates;
+  p->value = NULL;
+  p->initial_distn = NULL;
+  if (nstates <= 0)
+  {
+    fprintf(stderr, "invalid transition matrix size\n");
+    return -1;
+  }
+  p->value = malloc(nstates*nstates*sizeof(double));
+  p->initial_distn = malloc(nstates*sizeof(double));
   return 0;
 }
 
 int TM_init_from_names(struct TM *p, int nstates,
     const char *distribution_name, const char *transitions_name)
 {
-  double *distribution = get_doubles(nstates, "distribution.bin");
-  if (!distribution) return 1;
-  double *transitions = get_doubles(nstates*nstates, "transitions.bin");
-  if (!transitions) return 1;
   p->order = nstates;
+  p->value = NULL;
+  p->initial_distn = NULL;
+  if (nstates <= 0)
+  {
+    fprintf(stderr, "invalid transition matrix size\n");
+    return -1;
+  }
+  double *distribution = get_doubles(nstates, distribution_name);
+  if (!distribution) return -1;
+  double *transitions = get_doubles(nstates*nstates, transitions_name);
+  if (!transitions) return -1;
   p->value = transitions;
   p->initial_distn = distribution;
   return 0;
@@ -65,9 +78,16 @@ int TM_init_from_names(struct TM *p, int nstates,
 
 int TM_del(struct TM *p)
 {
-  /* destructor */
-  free(p->value);
-  free(p->initial_distn);
+  if (p->value)
+  {
+    free(p->value);
+    p->value = NULL;
+  }
+  if (p->initial_distn)
+  {
+    free(p->initial_distn);
+    p->initial_distn = NULL;
+  }
   return 0;
 }
 
@@ -95,7 +115,7 @@ int forward(struct TM *ptm, FILE *fin_l, FILE *fout_f, FILE *fout_s)
   if (!f_curr || !f_prev)
   {
     fprintf(stderr, "failed to allocate an array\n");
-    return 1;
+    return -1;
   }
   double p;
   double tprob;
@@ -128,7 +148,7 @@ int forward(struct TM *ptm, FILE *fin_l, FILE *fout_f, FILE *fout_s)
     if (scaling_factor == 0.0)
     {
       fprintf(stderr, "scaling factor 0.0 at pos %lld\n", pos);
-      return 1;
+      return -1;
     }
     for (isink=0; isink<nstates; isink++)
     {
@@ -161,7 +181,7 @@ int backward(struct TM *ptm, FILE *fin_l, FILE *fin_s, FILE *fout_b)
   if (result)
   {
     fprintf(stderr, "seek error\n");
-    return 1;
+    return -1;
   }
   /* read the likelihood and scaling files in reverse */
   size_t nbytes;
@@ -235,7 +255,7 @@ int posterior(struct TM *ptm, FILE *fi_f, FILE *fi_s, FILE *fi_b, FILE *fo_d)
   if (result)
   {
     fprintf(stderr, "seek error\n");
-    return 1;
+    return -1;
   }
   /* multiply stuff together and write to the output file */
   int i;
@@ -270,19 +290,19 @@ int do_forward(struct TM *ptm,
   if (!fin_l)
   {
     fprintf(stderr, "failed to open the likelihoods file for reading\n");
-    return 1;
+    return -1;
   }
   FILE *fout_f = fopen(forward_name, "wb");
   if (!fout_f)
   {
     fprintf(stderr, "failed to open the forward vector file for writing\n");
-    return 1;
+    return -1;
   }
   FILE *fout_s = fopen(scaling_name, "wb");
   if (!fout_s)
   {
     fprintf(stderr, "failed to open the scaling factor file for writing\n");
-    return 1;
+    return -1;
   }
   forward(ptm, fin_l, fout_f, fout_s);
   fclose(fin_l);
@@ -299,19 +319,19 @@ int do_backward(struct TM *ptm,
   if (!fin_l)
   {
     fprintf(stderr, "failed to open the likelihoods file for reading\n");
-    return 1;
+    return -1;
   }
   FILE *fin_s = fopen(scaling_name, "rb");
   if (!fin_s)
   {
     fprintf(stderr, "failed to open the scaling vector file for reading\n");
-    return 1;
+    return -1;
   }
   FILE *fout_b = fopen(backward_name, "wb");
   if (!fout_b)
   {
     fprintf(stderr, "failed to open the backward vector file for writing\n");
-    return 1;
+    return -1;
   }
   backward(ptm, fin_l, fin_s, fout_b);
   fclose(fin_l);
@@ -328,53 +348,30 @@ int do_posterior(struct TM *ptm,
   if (!fin_f)
   {
     fprintf(stderr, "failed to open the forward vector file for reading\n");
-    return 1;
+    return -1;
   }
   FILE *fin_s = fopen(scaling_name, "rb");
   if (!fin_s)
   {
     fprintf(stderr, "failed to open the scaling vector file for reading\n");
-    return 1;
+    return -1;
   }
   FILE *fin_b = fopen(backward_name, "rb");
   if (!fin_b)
   {
     fprintf(stderr, "failed to open the backward vector file for reading\n");
-    return 1;
+    return -1;
   }
   FILE *fout_d = fopen(posterior_name, "wb");
   if (!fout_d)
   {
     fprintf(stderr, "failed to open the posterior vector file for writing\n");
-    return 1;
+    return -1;
   }
   posterior(ptm, fin_f, fin_s, fin_b, fout_d);
   fclose(fin_f);
   fclose(fin_s);
   fclose(fin_b);
   fclose(fout_d);
-  return 0;
-}
-
-int not_main(int argc, char* argv[])
-{
-  int nstates=3;
-  /* read the stationary distribution */
-  double *distribution = get_doubles(nstates, "distribution.bin");
-  if (!distribution) return 1;
-  /* read the transition matrix */
-  double *transitions = get_doubles(nstates*nstates, "transitions.bin");
-  if (!transitions) return 1;
-  /* initialize the transition matrix object */
-  struct TM tm;
-  tm.order = nstates;
-  tm.value = transitions;
-  tm.initial_distn = distribution;
-  do_forward(&tm, "likelihoods.bin", "test.forward", "test.scaling");
-  do_backward(&tm, "likelihoods.bin", "test.scaling", "test.backward");
-  do_posterior(&tm, "test.forward", "test.scaling", "test.backward",
-      "test.posterior");
-  /* clean up */
-  TM_del(&tm);
   return 0;
 }
