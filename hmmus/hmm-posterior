@@ -19,15 +19,21 @@ def main(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--distribution',
+            default='distribution.bin',
             help='initial distribution (input binary file)')
     parser.add_argument('--transitions',
+            default='transitions.bin',
             help='transition matrix (input binary file)')
     parser.add_argument('--forward',
+            default='forward.bin',
             help='forward vectors (input binary file)')
     parser.add_argument('--scaling',
+            default='scaling.bin',
             help='scaling vectors (input binary file)')
     parser.add_argument('--backward',
+            default='backward.bin',
             help='backward factors (input binary file)')
     parser.add_argument('--posterior',
+            default='posterior.bin',
             help='posterior vectors (output binary file)')
     main(parser.parse_args())
