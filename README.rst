@@ -9,10 +9,10 @@ and it is meant to be useful under the following conditions:
 * Likelihoods per hidden state per position have been precalculated.
 * Numerical stability is important, but is not so important
   that error bounds on the output are required.
+* Speed is important.
 * The number of hidden states is small.
 * The matrix of probabilities of transitions between hidden states is dense.
 * Binary data files are acceptable as input and output.
-* It should be fast
 
 This project would be especially useless in the following cases:
 
@@ -43,6 +43,21 @@ Minor dependencies
 * The argparse_ module.
 
 
+Installation
+============
+
+Hmmus is hosted at PyPi so you should be able to install it
+using tools which are aware of this repository.
+If a virtualenv virtual environment is activated
+then the following command should install the program::
+
+    pip install hmmus
+
+To uninstall::
+
+    pip uninstall hmmus
+
+
 Usage
 =====
 
@@ -52,7 +67,7 @@ To create some files which define the hidden Markov model
 together with likelihoods of some observations conditional
 on the hidden state, try::
 
-    create-example-likelihoods-a.py
+    create-example-likelihoods-a
 
 To attempt to analyze the files
 produced from the python script above, try::
