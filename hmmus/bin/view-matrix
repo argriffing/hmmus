@@ -4,6 +4,8 @@
 The binary file to be viewed should consist purely of
 double precision floating point numbers or of integers.
 This viewer is not fast or memory-efficient.
+A standard octal file display utility called 'od'
+has similar functionality, e.g. "od --format=fD <binfile>".
 """
 
 import argparse
