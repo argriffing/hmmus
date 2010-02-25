@@ -1,5 +1,11 @@
 #!/usr/bin/env python
 
+"""View a matrix of binary data.
+The binary file to be viewed should consist purely of
+double precision floating point numbers or of integers.
+This viewer is not fast or memory-efficient.
+"""
+
 import argparse
 import numpy as np
 
@@ -21,15 +27,26 @@ def main(args):
     """
     Print a view of the matrix.
     """
+    # read the raw data
     M = np.fromfile(args.infile, dtype=dtype(args.dtype))
-    nrows = len(M) / args.ncols
+    # compute the number of rows to be viewed
+    nrows, remainder = divmod(len(M), args.ncols)
+    # compute the dimensions of the matrix to be viewed
     shape = (nrows, args.ncols)
+    # if no rows are to be viewed then return
+    if not nrows:
+        return
+    # if the matrix is ragged then truncate it
+    if remainder:
+        nvisible = shape[0] * shape[1]
+        M = M[:nvisible]
+    # reshape the matrix according to the computed number of rows and columns
     M = M.reshape(shape)
     print M
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--ncols', type=whole_number, default=2,
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--ncols', type=whole_number, default=1,
             help='number of columns'),
     parser.add_argument('--dtype', default='float', choices=('float', 'int'),
             help='python data type'),

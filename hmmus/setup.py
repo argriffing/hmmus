@@ -21,7 +21,7 @@ from distutils.core import setup
 from distutils.core import Extension
 import os
 
-myversion_tuple = (0, 1, 9)
+myversion_tuple = (0, 1, 11)
 myversion = '.'.join(str(x) for x in myversion_tuple)
 
 hummusc = Extension(
@@ -46,6 +46,9 @@ classifiers = [
 
 scripts = [
         'bin/hmm-demo',
+        'bin/hmm-forward',
+        'bin/hmm-backward',
+        'bin/hmm-posterior',
         'bin/view-matrix']
 
 
