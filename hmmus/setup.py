@@ -19,6 +19,10 @@ python setup.py sdist upload --show-response
 
 from distutils.core import setup
 from distutils.core import Extension
+import os
+
+myversion_tuple = (0, 1, 4)
+myversion = '.'.join(str(x) for x in myversion_tuple)
 
 hummusc = Extension(
         name='hmmusc',
@@ -46,14 +50,20 @@ scripts = [
         'bin/create-example-likelihoods-c.py',
         'bin/view-matrix.py']
 
+
+download_url_first = 'http://pypi.python.org/packages/source'
+download_url_rest = 'h/hmmus/hmmus-' + myversion + '.tar.gz'
+download_url = os.path.join(download_url_first, download_url_rest)
+
 setup(
         name = 'hmmus',
-        version = '0.1.3',
+        version = myversion,
         author = 'Alex Griffing',
         author_email = 'argriffi@ncsu.edu',
         maintainer = 'Alex Griffing',
         maintainer_email = 'argriffi@ncsu.edu',
         url = 'http://github.com/argriffing/hmmus',
+        download_url = download_url,
         description = 'Hidden Markov model stuff',
         long_description = open('README').read(),
         classifiers = classifiers,
