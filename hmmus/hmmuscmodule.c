@@ -5,17 +5,6 @@
 static PyObject *HmmuscError;
 
 static PyObject *
-hello_world(PyObject *self, PyObject *args)
-{
-  const char *command;
-  int sts = 42;
-  if (!PyArg_ParseTuple(args, "s", &command))
-    return NULL;
-  printf("ohai %s", command);
-  return Py_BuildValue("i", sts);
-}
-
-static PyObject *
 posterior_python(PyObject *self, PyObject *args)
 {
   int nstates;
@@ -111,7 +100,6 @@ backward_python(PyObject *self, PyObject *args)
 }
 
 static PyMethodDef HmmuscMethods[] = {
-  {"hello", hello_world, METH_VARARGS, "Say hi."},
   {"posterior", posterior_python, METH_VARARGS, "Posterior decoding."},
   {"backward", backward_python, METH_VARARGS, "Backward algorithm."},
   {"forward", forward_python, METH_VARARGS, "Forward algorithm."},
