@@ -12,6 +12,12 @@ include FAQ
 include setup.py
 include hmmuscmodule.c
 
+include hmm-forward
+include hmm-backward
+include hmm-posterior
+include hmm-demo
+include view-matrix
+
 include hmmguts/hmmguts.c
 include hmmguts/hmmguts.h
 
@@ -20,5 +26,3 @@ recursive-include example *.py
 recursive-include test *.py
 
 recursive-include hmmus *.py
-
-recursive-include bin *
