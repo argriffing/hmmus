@@ -26,7 +26,7 @@ if __name__ == '__main__':
             help='forward vectors (input binary file)')
     parser.add_argument('--scaling',
             help='scaling vectors (input binary file)')
-    parser.add_argument('--scaling',
+    parser.add_argument('--backward',
             help='backward factors (input binary file)')
     parser.add_argument('--posterior',
             help='posterior vectors (output binary file)')

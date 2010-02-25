@@ -21,7 +21,7 @@ from distutils.core import setup
 from distutils.core import Extension
 import os
 
-myversion_tuple = (0, 1, 15)
+myversion_tuple = (0, 1, 16)
 myversion = '.'.join(str(x) for x in myversion_tuple)
 
 hummusc = Extension(
