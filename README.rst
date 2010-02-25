@@ -51,11 +51,11 @@ using tools which are aware of this repository.
 If a virtualenv virtual environment is activated
 then the following command should install the program::
 
-    pip install hmmus
+    $ pip install hmmus
 
 To uninstall::
 
-    pip uninstall hmmus
+    $ pip uninstall hmmus
 
 
 Usage
@@ -67,13 +67,13 @@ To create some files which define the hidden Markov model
 together with likelihoods of some observations conditional
 on the hidden state, try::
 
-    create-example-likelihoods-a
+    $ create-example-likelihoods-a
 
 To attempt to analyze the files
 produced from the python script above, try::
 
-    gcc hmmus.c
-    ./a.out
+    $ gcc hmmus.c
+    $ ./a.out
 
 
 .. _Python-2.x: http://www.python.org/

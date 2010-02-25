@@ -3,11 +3,25 @@
 import argparse
 import numpy as np
 
+def whole_number(s):
+    k = int(s)
+    if k < 1:
+        raise TypeError
+    return k
+
+def dtype(s):
+    if s == 'float':
+        return float
+    elif s == 'int':
+        return int
+    else:
+        raise TypeError
+
 def main(args):
     """
     Print a view of the matrix.
     """
-    M = np.fromfile(args.infile, dtype=float)
+    M = np.fromfile(args.infile, dtype=dtype(args.dtype))
     nrows = len(M) / args.ncols
     shape = (nrows, args.ncols)
     M = M.reshape(shape)
@@ -15,7 +29,10 @@ def main(args):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('ncols', type=int, help='number of columns'),
+    parser.add_argument('--ncols', type=whole_number, default=2,
+            help='number of columns'),
+    parser.add_argument('--dtype', default='float', choices=('float', 'int'),
+            help='python data type'),
     parser.add_argument('infile', type=argparse.FileType('rb'),
             help='binary file to view')
     main(parser.parse_args())
