@@ -1,5 +1,5 @@
 Description
------------
+===========
 
 This project has some HMM algorithms implemented in C,
 and it is meant to be useful under the following conditions:
@@ -12,6 +12,7 @@ and it is meant to be useful under the following conditions:
 * The number of hidden states is small.
 * The matrix of probabilities of transitions between hidden states is dense.
 * Binary data files are acceptable as input and output.
+* It should be fast
 
 This project would be especially useless in the following cases:
 
@@ -22,7 +23,7 @@ This project would be especially useless in the following cases:
 
 
 Requirements
-------------
+============
 
 Operating system requirements:
 
@@ -38,12 +39,12 @@ Major dependencies:
 Minor dependencies
 (for optional tools):
 
-* A recent version of [Python-2.x](http://www.python.org/) (2.6+).
-* The [argparse](http://code.google.com/p/argparse/) module.
+* A recent version of .. _Python-2.x: http://www.python.org/ (2.6+).
+* The .. _argparse: http://code.google.com/p/argparse/ module.
 
 
-Usage:
-----------------------------
+Usage
+=====
 
 Right now everything is hardcoded.
 
@@ -51,7 +52,7 @@ To create some files which define the hidden Markov model
 together with likelihoods of some observations conditional
 on the hidden state, try:
 
-    python create-example-likelihoods-a.py
+    create-example-likelihoods-a.py
 
 To attempt to analyze the files
 produced from the python script above, try:
