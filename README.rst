@@ -39,8 +39,8 @@ Major dependencies:
 Minor dependencies
 (for optional tools):
 
-* A recent version of .. _Python-2.x: http://www.python.org/ (2.6+).
-* The .. _argparse: http://code.google.com/p/argparse/ module.
+* A recent version of Python-2.x_ (2.6+).
+* The argparse_ module.
 
 
 Usage
@@ -59,3 +59,7 @@ produced from the python script above, try:
 
     gcc hmmus.c
     ./a.out
+
+
+.. _Python-2.x: http://www.python.org/
+.. _argparse: http://code.google.com/p/argparse/
