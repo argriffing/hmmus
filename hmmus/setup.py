@@ -21,7 +21,7 @@ from distutils.core import setup
 from distutils.core import Extension
 import os
 
-myversion_tuple = (0, 1, 4)
+myversion_tuple = (0, 1, 5)
 myversion = '.'.join(str(x) for x in myversion_tuple)
 
 hummusc = Extension(
@@ -45,15 +45,18 @@ classifiers = [
         'Topic :: Software Development :: Libraries :: Python Modules']
 
 scripts = [
-        'bin/create-example-likelihoods-a.py',
-        'bin/create-example-likelihoods-b.py',
-        'bin/create-example-likelihoods-c.py',
-        'bin/view-matrix.py']
+        'bin/create-example-likelihoods-a',
+        'bin/create-example-likelihoods-b',
+        'bin/create-example-likelihoods-c',
+        'bin/view-matrix']
 
 
 download_url_first = 'http://pypi.python.org/packages/source'
 download_url_rest = 'h/hmmus/hmmus-' + myversion + '.tar.gz'
 download_url = os.path.join(download_url_first, download_url_rest)
+
+# This seems like a standard method.
+long_description = open('README').read()
 
 setup(
         name = 'hmmus',
@@ -65,7 +68,7 @@ setup(
         url = 'http://github.com/argriffing/hmmus',
         download_url = download_url,
         description = 'Hidden Markov model stuff',
-        long_description = open('README').read(),
+        long_description = long_description,
         classifiers = classifiers,
         platforms = ['linux'],
         license = 'http://www.opensource.org/licenses/mit-license.html',
