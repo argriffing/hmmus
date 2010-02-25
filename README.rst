@@ -1,7 +1,7 @@
-Description
+About Hmmus
 ===========
 
-This project has some HMM algorithms implemented in C,
+This project has some HMM algorithms implemented in C with Python bindings,
 and it is meant to be useful under the following conditions:
 
 * The sequence of observations to be analyzed is so long
@@ -50,12 +50,12 @@ Right now everything is hardcoded.
 
 To create some files which define the hidden Markov model
 together with likelihoods of some observations conditional
-on the hidden state, try:
+on the hidden state, try::
 
     create-example-likelihoods-a.py
 
 To attempt to analyze the files
-produced from the python script above, try:
+produced from the python script above, try::
 
     gcc hmmus.c
     ./a.out
