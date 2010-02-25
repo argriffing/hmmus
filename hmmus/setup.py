@@ -21,7 +21,7 @@ from distutils.core import setup
 from distutils.core import Extension
 import os
 
-myversion_tuple = (0, 1, 8)
+myversion_tuple = (0, 1, 9)
 myversion = '.'.join(str(x) for x in myversion_tuple)
 
 hummusc = Extension(
@@ -45,9 +45,7 @@ classifiers = [
         'Topic :: Software Development :: Libraries :: Python Modules']
 
 scripts = [
-        'bin/create-example-likelihoods-a',
-        'bin/create-example-likelihoods-b',
-        'bin/create-example-likelihoods-c',
+        'bin/hmm-demo',
         'bin/view-matrix']
 
 
@@ -70,7 +68,7 @@ setup(
         description = 'Hidden Markov model stuff',
         long_description = long_description,
         classifiers = classifiers,
-        platforms = ['linux'],
+        platforms = ['Linux'],
         license = 'http://www.opensource.org/licenses/mit-license.html',
         ext_modules = [hummusc],
         packages = ['hmmus'],
