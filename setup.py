@@ -21,7 +21,7 @@ from distutils.core import setup
 from distutils.core import Extension
 import os
 
-myversion_tuple = (0, 1, 22)
+myversion_tuple = (0, 1, 23)
 myversion = '.'.join(str(x) for x in myversion_tuple)
 
 hummusc = Extension(
@@ -68,11 +68,11 @@ setup(
         maintainer_email = 'argriffi@ncsu.edu',
         url = 'http://github.com/argriffing/hmmus',
         download_url = download_url,
-        description = 'Hidden Markov model stuff',
+        description = 'Posterior decoding with a hidden Markov model',
         long_description = long_description,
         classifiers = classifiers,
         platforms = ['Linux'],
-        license = 'http://www.opensource.org/licenses/mit-license.html',
+        license = 'MIT',
         ext_modules = [hummusc],
         packages = ['hmmus'],
         scripts = scripts)

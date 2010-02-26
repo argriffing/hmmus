@@ -1,1 +1,8 @@
-easy_install hmmus
+The short answer is that if you are using a Debian-based Linux
+distribution, and you've installed virtualenv and pip and have
+activated a virtual environment, then you should be able to install
+hmmus as follows::
+
+    $ pip install hmmus
+
+For a longer answer see the readme file.

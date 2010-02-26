@@ -1,1 +1,7 @@
-TODO: everything
+WISHLIST:
+- maybe use hdf5 instead of the ad hoc binary format
+- add real documentation (e.g. sphinx)
+- add structured docstrings to the python code (e.g. epydoc, reST)
+- add real unit tests instead of just manually executed demos
+- allow non-file ways to specify the state distribution and transitions
+- allow the forward-backward algorithm to run in RAM instead of on disk
