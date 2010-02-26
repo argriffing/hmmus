@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-"""Use forward and backward vectors to infer posterior distributions. [FIXME]
+"""Use forward and backward vectors to infer posterior distributions.
 The input and output binary files
 consist of double precision floating point numbers in
 the format (e.g. endianness) native to the machine.

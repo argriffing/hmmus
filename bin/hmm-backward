@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-"""Run the backward HMM algorithm.
+"""Run the HMM backward algorithm.
 The input and output binary files
 consist of double precision floating point numbers in
 the format (e.g. endianness) native to the machine.

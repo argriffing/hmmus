@@ -124,21 +124,21 @@ likelihoods at each position conditional on each hidden state.
 To get the position specific posterior distributions of hidden states,
 run these three commands::
 
-    $ hmm-forwards
-    $ hmm-backwards
+    $ hmm-forward
+    $ hmm-backward
     $ hmm-posterior
 
 This should create four more binary files in the ``mydemo`` directory,
 including one named ``posterior.bin`` which has the distributions of interest.
 To look at this binary file, use the viewer installed with hmmus::
 
-    $ view-matrix --ncols=4 posterior.bin
+    $ view-matrix --ncols=3 posterior.bin
 
 Until better documentation is written,
 information about the usage of the hmmus-associated scripts can be found
 using commands like this::
 
-    $ hmm-backwards --help
+    $ hmm-backward --help
 
 
 Usage
