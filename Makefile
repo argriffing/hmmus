@@ -4,8 +4,8 @@ hmm : hmmus.o hmmguts.o
 hmmus.o : hmmus.c
 	gcc -c hmmus.c
 
-hmmguts.o : hmmus/hmmguts/hmmguts.c
-	gcc -c hmmus/hmmguts/hmmguts.c
+hmmguts.o : hmmguts/hmmguts.c
+	gcc -c hmmguts/hmmguts.c
 
 clean :
 	rm hmmus.o hmmguts.o

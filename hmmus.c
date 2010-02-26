@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "hmmus/hmmguts/hmmguts.h"
+#include "hmmguts/hmmguts.h"
 
 int main(int argc, char* argv[])
 {
