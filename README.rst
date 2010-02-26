@@ -1,7 +1,9 @@
-About Hmmus
+About hmmus
 ===========
 
-This project has some HMM algorithms implemented in C with Python bindings,
+Hmmus has some
+C implementations of HMM algorithms
+with Python bindings,
 and it is meant to be useful under the following conditions:
 
 * The sequence of observations to be analyzed is so long
@@ -35,8 +37,12 @@ Operating system requirements:
 Major dependencies:
 
 * A recent version of Python-2.x_ (2.6+).
-* The argparse_ module.
 * A C compiler which is not too different from gcc.
+
+Python package and module dependencies:
+
+* argparse_
+* numpy_
 
 
 Installation
@@ -128,7 +134,7 @@ To look at this binary file, use the viewer installed with hmmus::
 
     $ view-matrix --ncols=4 posterior.bin
 
-Until better documentation is writtin,
+Until better documentation is written,
 information about the usage of the hmmus-associated scripts can be found
 using commands like this::
 
@@ -148,3 +154,4 @@ posterior decoding is through the binary files.
 .. _pip: http://pip.openplans.org
 .. _pypi: http://pypi.python.org
 .. _github: http://github.com
+.. _numpy: http://numpy.scipy.org
