@@ -34,47 +34,117 @@ Operating system requirements:
 
 Major dependencies:
 
-* A C compiler which is not too different from gcc.
-
-Minor dependencies
-(for optional tools):
-
 * A recent version of Python-2.x_ (2.6+).
 * The argparse_ module.
+* A C compiler which is not too different from gcc.
 
 
 Installation
 ============
 
-Hmmus is hosted at PyPi so you should be able to install it
-using tools which are aware of this repository.
-If a virtualenv virtual environment is activated
-then the following command should install the program::
+Setting up virtualenv and pip
+-----------------------------
+
+A good way to install hmmus is with virtualenv_ and pip_.
+If you are already using these programs and you've activated
+a virtual environment, then you can ignore this section.
+
+These programs have been packaged for Ubuntu and probably Debian,
+and can be installed from the Linux distribution package repository
+as follows::
+
+    $ sudo apt-get install python-virtualenv
+    $ sudo apt-get install python-pip
+
+Next use virtualenv to create a virtual python environment::
+
+    $ virtualenv ~/myenv
+
+Now activate the virtual environment::
+
+    $ . ~/myenv/bin/activate
+
+Installing hmmus
+----------------
+
+The easiest way to install hmmus is from the
+python package index pypi_ as follows::
 
     $ pip install hmmus
 
-To uninstall::
+If pypi is inaccessible for some reason,
+then hmmus can alternatively be installed from its github_
+repository as follows::
+
+    $ pip install git+git://github.com/argriffing/hmmus
+
+Uninstalling hmmus
+------------------
+
+It is easy to uninstall hmmus using pip::
 
     $ pip uninstall hmmus
+
+If this fails for some reason and you really want to get rid of hmmus,
+then you can delete the virtual environment into which hmmus
+was installed.
+
+
+Demo
+====
+
+In its current incarnation
+hmmus provides some scripts for doing posterior decoding,
+using unfriendly binary files for input and output.
+The following commands create an empty directory
+and then fill it with some sample input files::
+
+    $ mkdir mydemo
+    $ cd mydemo
+    $ hmm-demo smith
+
+This creates the files 
+``distribution.bin``,
+``transitions.bin``, and
+``likelihoods.bin``
+from a numerical example in the paper
+http://www.cs.cmu.edu/~nasmith/papers/smith.tut04a.pdf
+which explains posterior decoding.
+The first two binary files define the initial distribution
+and the transition matrix of the HMM.
+The third binary file defines the sequence of
+likelihoods at each position conditional on each hidden state.
+
+To get the position specific posterior distributions of hidden states,
+run these three commands::
+
+    $ hmm-forwards
+    $ hmm-backwards
+    $ hmm-posterior
+
+This should create four more binary files in the ``mydemo`` directory,
+including one named ``posterior.bin`` which has the distributions of interest.
+To look at this binary file, use the viewer installed with hmmus::
+
+    $ view-matrix --ncols=4 posterior.bin
+
+Until better documentation is writtin,
+information about the usage of the hmmus-associated scripts can be found
+using commands like this::
+
+    $ hmm-backwards --help
 
 
 Usage
 =====
 
-Right now everything is hardcoded.
-
-To create some files which define the hidden Markov model
-together with likelihoods of some observations conditional
-on the hidden state, try::
-
-    $ create-example-likelihoods-a
-
-To attempt to analyze the files
-produced from the python script above, try::
-
-    $ gcc hmmus.c
-    $ ./a.out
+For now, the only interface to the
+posterior decoding is through the binary files.
 
 
-.. _Python-2.x: http://www.python.org/
-.. _argparse: http://code.google.com/p/argparse/
+.. _Python-2.x: http://www.python.org
+.. _argparse: http://code.google.com/p/argparse
+.. _virtualenv: http://virtualenv.openplans.org
+.. _pip: http://pip.openplans.org
+.. _pypi: http://pypi.python.org
+.. _github: http://github.com
