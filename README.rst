@@ -79,10 +79,17 @@ python package index pypi_ as follows::
     $ pip install hmmus
 
 If pypi is inaccessible for some reason,
-then hmmus can alternatively be installed from its github_
+then hmmus can alternatively be installed directly from its github_
 repository as follows::
 
     $ pip install git+git://github.com/argriffing/hmmus
+
+If you are developing hmmus or have cloned the git repo
+as ``~/repos/hmmus`` for some other reason,
+hmmus can be installed from this local repository as follows::
+
+    $ pip install -e ~/repos/hmmus
+
 
 Uninstalling hmmus
 ------------------
