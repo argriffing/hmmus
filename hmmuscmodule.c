@@ -4,33 +4,68 @@
 
 static PyObject *HmmuscError;
 
+/*
+ * Input is a tuple of python floats.
+ * The length of the array is filled.
+ * Returned is the pointer to the new array of doubles.
+ */
+double *
+double_vector_helper(PyObject *myfloattuple, Py_ssize_t *pn)
+{
+  *pn = PyTuple_Size(myfloattuple);
+  if (!(*pn)) return NULL;
+  double *doubles = malloc((*pn)*sizeof(double));
+  Py_ssize_t i;
+  for (i=0; i<(*pn); i++)
+  {
+    doubles[i] = PyFloat_AsDouble(PyTuple_GetItem(myfloattuple, i));
+  }
+  return doubles;
+}
+
+/* 
+ * Initialize the transition matrix object
+ * given a pytuple of initial distribution floats
+ * and a pytuple of transition matrix floats.
+ * A return value of -1 means there was an error.
+ */
+int TM_init_from_pytuples(struct TM *ptm, PyObject *vtuple, PyObject *mtuple)
+{
+  Py_ssize_t ndistribution;
+  Py_ssize_t ntransitions;
+  ptm->value = double_vector_helper(vtuple, &ndistribution);
+  ptm->initial_distn = double_vector_helper(mtuple, &ntransitions);
+  ptm->order = (int) ndistribution;
+  if (!ptm->value || !ptm->initial_distn)
+  {
+    PyErr_SetString(HmmuscError, "transition matrix init error");
+    TM_del(ptm);
+    return -1;
+  }
+  return 0;
+}
+
 static PyObject *
 posterior_python(PyObject *self, PyObject *args)
 {
-  int nstates;
-  const char *distn_name;
-  const char *transitions_name;
-  const char *forward_name;
-  const char *scaling_name;
-  const char *backward_name;
-  const char *posterior_name;
-  int result;
-  int ok = PyArg_ParseTuple(args, "issssss",
-      &nstates, &distn_name, &transitions_name,
-      &forward_name, &scaling_name, &backward_name, &posterior_name);
+  PyObject *vtuple;
+  PyObject *mtuple;
+  const char *f_name;
+  const char *s_name;
+  const char *b_name;
+  const char *p_name;
+  /* read the args */
+  int ok = PyArg_ParseTuple(args, "OOssss",
+      &vtuple, &mtuple,
+      &f_name, &s_name, &b_name, &p_name);
   if (!ok) return NULL;
+  /* run the hmm algorithm */
   struct TM tm;
-  result = TM_init_from_names(&tm, nstates, distn_name, transitions_name);
-  if (result)
-  {
-    PyErr_SetString(HmmuscError, "transition matrix init error");
-    return NULL;
-  }
-  result = do_posterior(&tm, forward_name, scaling_name, backward_name,
-      posterior_name);
-  if (result)
+  if (TM_init_from_pytuples(&tm, vtuple, mtuple)) return NULL;
+  if (do_posterior(&tm, f_name, s_name, b_name, p_name))
   {
     PyErr_SetString(HmmuscError, "posterior algorithm error");
+    TM_del(&tm);
     return NULL;
   }
   TM_del(&tm);
@@ -40,28 +75,23 @@ posterior_python(PyObject *self, PyObject *args)
 static PyObject *
 forward_python(PyObject *self, PyObject *args)
 {
-  int nstates;
-  const char *distn_name;
-  const char *transitions_name;
+  PyObject *vtuple;
+  PyObject *mtuple;
   const char *likelihoods_name;
   const char *forward_name;
   const char *scaling_name;
-  int result;
-  int ok = PyArg_ParseTuple(args, "isssss",
-      &nstates, &distn_name, &transitions_name,
+  /* read the args */
+  int ok = PyArg_ParseTuple(args, "OOsss",
+      &vtuple, &mtuple,
       &likelihoods_name, &forward_name, &scaling_name);
   if (!ok) return NULL;
+  /* run the hmm algorithm */
   struct TM tm;
-  result = TM_init_from_names(&tm, nstates, distn_name, transitions_name);
-  if (result)
-  {
-    PyErr_SetString(HmmuscError, "transition matrix init error");
-    return NULL;
-  }
-  result = do_forward(&tm, likelihoods_name, forward_name, scaling_name);
-  if (result)
+  if (TM_init_from_pytuples(&tm, vtuple, mtuple)) return NULL;
+  if (do_forward(&tm, likelihoods_name, forward_name, scaling_name))
   {
     PyErr_SetString(HmmuscError, "forward algorithm error");
+    TM_del(&tm);
     return NULL;
   }
   TM_del(&tm);
@@ -71,28 +101,23 @@ forward_python(PyObject *self, PyObject *args)
 static PyObject *
 backward_python(PyObject *self, PyObject *args)
 {
-  int nstates;
-  const char *distn_name;
-  const char *transitions_name;
+  PyObject *vtuple;
+  PyObject *mtuple;
   const char *likelihoods_name;
   const char *scaling_name;
   const char *backward_name;
-  int result;
-  int ok = PyArg_ParseTuple(args, "isssss",
-      &nstates, &distn_name, &transitions_name,
+  /* read the args */
+  int ok = PyArg_ParseTuple(args, "OOsss",
+      &vtuple, &mtuple,
       &likelihoods_name, &scaling_name, &backward_name);
   if (!ok) return NULL;
+  /* run the hmm algorithm */
   struct TM tm;
-  result = TM_init_from_names(&tm, nstates, distn_name, transitions_name);
-  if (result)
-  {
-    PyErr_SetString(HmmuscError, "transition matrix init error");
-    return NULL;
-  }
-  result = do_backward(&tm, likelihoods_name, scaling_name, backward_name);
-  if (result)
+  if (TM_init_from_pytuples(&tm, vtuple, mtuple)) return NULL;
+  if (do_backward(&tm, likelihoods_name, scaling_name, backward_name))
   {
     PyErr_SetString(HmmuscError, "backward algorithm error");
+    TM_del(&tm);
     return NULL;
   }
   TM_del(&tm);
