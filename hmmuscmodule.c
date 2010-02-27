@@ -12,13 +12,15 @@ static PyObject *HmmuscError;
 double *
 double_vector_helper(PyObject *myfloattuple, Py_ssize_t *pn)
 {
+  PyObject *myfloat;
+  Py_ssize_t i;
   *pn = PyTuple_Size(myfloattuple);
   if (!(*pn)) return NULL;
   double *doubles = malloc((*pn)*sizeof(double));
-  Py_ssize_t i;
   for (i=0; i<(*pn); i++)
   {
-    doubles[i] = PyFloat_AsDouble(PyTuple_GetItem(myfloattuple, i));
+    myfloat = PyTuple_GetItem(myfloattuple, i);
+    doubles[i] = PyFloat_AsDouble(myfloat);
   }
   return doubles;
 }
@@ -33,12 +35,18 @@ int TM_init_from_pytuples(struct TM *ptm, PyObject *vtuple, PyObject *mtuple)
 {
   Py_ssize_t ndistribution;
   Py_ssize_t ntransitions;
-  ptm->value = double_vector_helper(vtuple, &ndistribution);
-  ptm->initial_distn = double_vector_helper(mtuple, &ntransitions);
+  ptm->initial_distn = double_vector_helper(vtuple, &ndistribution);
+  ptm->value = double_vector_helper(mtuple, &ntransitions);
   ptm->order = (int) ndistribution;
   if (!ptm->value || !ptm->initial_distn)
   {
-    PyErr_SetString(HmmuscError, "transition matrix init error");
+    PyErr_SetString(HmmuscError, "transition matrix init error (NULL)");
+    TM_del(ptm);
+    return -1;
+  }
+  if (ndistribution*ndistribution != ntransitions)
+  {
+    PyErr_SetString(HmmuscError, "transition matrix init error (k*k != n)");
     TM_del(ptm);
     return -1;
   }

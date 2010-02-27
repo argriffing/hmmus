@@ -7,13 +7,17 @@ the format (e.g. endianness) native to the machine.
 """
 
 import argparse
-import hmmusc
-from hmmus import hmmhelper
+
+import numpy as np
+
+import hmmus
+
 
 def main(args):
-    nstates = hmmhelper.get_nstates(args.distribution, args.transitions)
-    hmmusc.backward(
-            nstates, args.distribution, args.transitions,
+    np_distn, np_trans = hmmus.hmmhelper.load_distn_and_trans(
+            args.distribution, args.transitions)
+    hmmus.backward(
+            np_distn, np_trans,
             args.likelihoods, args.scaling, args.backward)
 
 if __name__ == '__main__':
