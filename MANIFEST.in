@@ -17,7 +17,6 @@ include hmmguts/hmmguts.h
 
 recursive-include doc *.html
 recursive-include example *.py
-recursive-include test *.py
 
 recursive-include hmmus *.py
 
