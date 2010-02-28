@@ -41,8 +41,8 @@ Major dependencies:
 
 Python package and module dependencies:
 
-* argparse_
 * numpy_
+* argparse_
 
 
 Installation
@@ -69,6 +69,16 @@ Next use virtualenv to create a virtual python environment::
 Now activate the virtual environment::
 
     $ . ~/myenv/bin/activate
+
+Installing required Python modules and packages
+-----------------------------------------------
+
+The following packages and modules should be installed:
+
+* The ``numpy`` package should be installed
+  by ``sudo apt-get install python-numpy`` on Debian and Ubuntu.
+* The ``argparse`` module can be installed
+  by ``pip install argparse`` in the activated virtual environment.
 
 Installing hmmus
 ----------------
