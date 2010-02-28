@@ -118,7 +118,7 @@ double sum(double *v, int n)
   return total;
 }
 
-int forward(struct TM *ptm, FILE *fin_l, FILE *fout_f, FILE *fout_s)
+int forward(const struct TM *ptm, FILE *fin_l, FILE *fout_f, FILE *fout_s)
 {
   /*
    * Run the forward algorithm.
@@ -184,7 +184,7 @@ int forward(struct TM *ptm, FILE *fin_l, FILE *fout_f, FILE *fout_s)
   return 0;
 }
 
-int backward(struct TM *ptm, FILE *fin_l, FILE *fin_s, FILE *fout_b)
+int backward(const struct TM *ptm, FILE *fin_l, FILE *fin_s, FILE *fout_b)
 {
   /*
    * @param ptm: pointer to the transition matrix struct
@@ -300,7 +300,16 @@ int posterior(int nstates, FILE *fi_f, FILE *fi_s, FILE *fi_b, FILE *fo_d)
   return 0;
 }
 
-int do_forward(struct TM *ptm,
+int fwdbwd_somedisk(const struct TM *ptm, FILE *fin_l, FILE *fout_d)
+{
+}
+
+int do_fwdbwd_somedisk(const struct TM *ptm,
+    const char *likelihoods_name, const char *posterior_name)
+{
+}
+
+int do_forward(const struct TM *ptm,
     const char *likelihoods_name, const char *forward_name,
     const char *scaling_name)
 {
@@ -331,7 +340,7 @@ end:
   return errcode;
 }
 
-int do_backward(struct TM *ptm,
+int do_backward(const struct TM *ptm,
     const char *likelihoods_name, const char *scaling_name,
     const char *backward_name)
 {

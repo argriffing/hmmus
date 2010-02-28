@@ -25,22 +25,28 @@ int TM_del(struct TM *p);
 
 double sum(double *v, int n);
 
-int forward(struct TM *ptm, FILE *fin_l, FILE *fout_f, FILE *fout_s);
+int forward(const struct TM *ptm, FILE *fin_l, FILE *fout_f, FILE *fout_s);
 
-int backward(struct TM *ptm, FILE *fin_l, FILE *fin_s, FILE *fout_b);
+int backward(const struct TM *ptm, FILE *fin_l, FILE *fin_s, FILE *fout_b);
 
 int posterior(int nstates, FILE *fi_f, FILE *fi_s, FILE *fi_b, FILE *fo_d);
 
-int do_forward(struct TM *ptm,
+int fwdbwd_somedisk(const struct TM *ptm, FILE *fin_l, FILE *fout_d);
+
+int do_forward(const struct TM *ptm,
     const char *likelihoods_name, const char *forward_name,
     const char *scaling_name);
 
-int do_backward(struct TM *ptm,
+int do_backward(const struct TM *ptm,
     const char *likelihoods_name, const char *scaling_name,
     const char *backward_name);
 
 int do_posterior(int nstates,
     const char *forward_name, const char *scaling_name,
     const char *backward_name, const char *posterior_name);
+
+int do_fwdbwd_somedisk(const struct TM *ptm,
+    const char *likelihoods_name, const char *posterior_name);
+
 
 #endif

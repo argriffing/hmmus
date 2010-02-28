@@ -21,7 +21,7 @@ from distutils.core import setup
 from distutils.core import Extension
 import os
 
-myversion_tuple = (0, 1, 25)
+myversion_tuple = (0, 2, 0)
 myversion = '.'.join(str(x) for x in myversion_tuple)
 
 hummusc = Extension(
@@ -29,7 +29,7 @@ hummusc = Extension(
         sources=['hmmuscmodule.c', 'hmmguts/hmmguts.c'])
 
 classifiers = [
-        'Development Status :: 2 - Pre-Alpha',
+        'Development Status :: 3 - Alpha',
         'Environment :: Console',
         'Intended Audience :: Developers',
         'Intended Audience :: Science/Research',
