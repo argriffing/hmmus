@@ -79,7 +79,7 @@ posterior_python(PyObject *self, PyObject *args)
   /* run the hmm algorithm */
   struct TM tm;
   if (TM_init_from_pytuples(&tm, vtuple, mtuple) < 0) return NULL;
-  if (do_posterior(&tm, f_name, s_name, b_name, p_name))
+  if (do_posterior(tm.nstates, f_name, s_name, b_name, p_name))
   {
     PyErr_SetString(HmmuscError, "posterior algorithm error");
     TM_del(&tm);

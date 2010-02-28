@@ -21,8 +21,7 @@ double* get_doubles(int ndoubles, const char *filename)
    * Read some double precision floating point numbers from a binary file.
    */
   struct stat buf;
-  int result = stat(filename, &buf);
-  if (result < 0)
+  if (stat(filename, &buf) < 0)
   {
     fprintf(stderr, "the file %s was not found\n", filename);
     return NULL;
@@ -66,19 +65,37 @@ int TM_init(struct TM *p, int nstates)
   return 0;
 }
 
-int TM_init_from_names(struct TM *p, int nstates,
-    const char *distribution_name, const char *transitions_name)
+int TM_init_from_names(struct TM *p,
+    const char *distn_name, const char *trans_name)
 {
-  p->nstates = nstates;
+  p->nstates = 0;
   p->trans = NULL;
   p->distn = NULL;
-  if (nstates <= 0)
+  struct stat buf;
+  if (stat(distn_name, &buf) < 0)
   {
-    fprintf(stderr, "invalid transition matrix size\n");
+    fprintf(stderr, "the file %s was not found\n", distn_name);
     goto fail;
   }
-  if (!(p->distn = get_doubles(nstates, distribution_name))) goto fail;
-  if (!(p->trans = get_doubles(nstates*nstates, transitions_name))) goto fail;
+  if (buf.st_size % sizeof(double) != 0)
+  {
+    fprintf(stderr, "%s should have double precision floats\n", distn_name);
+    goto fail;
+  }
+  p->nstates = buf.st_size / sizeof(double);
+  int nstates_squared = p->nstates * p->nstates;
+  if (stat(trans_name, &buf) < 0)
+  {
+    fprintf(stderr, "the file %s was not found\n", trans_name);
+    goto fail;
+  }
+  if (buf.st_size != nstates_squared * sizeof(double))
+  {
+    fprintf(stderr, "the transition matrix is incompatible\n");
+    goto fail;
+  }
+  if (!(p->distn = get_doubles(p->nstates, distn_name))) goto fail;
+  if (!(p->trans = get_doubles(nstates_squared, trans_name))) goto fail;
   return 0;
 fail:
   TM_del(p);
@@ -240,17 +257,16 @@ int backward(struct TM *ptm, FILE *fin_l, FILE *fin_s, FILE *fout_b)
   return 0;
 }
 
-int posterior(struct TM *ptm, FILE *fi_f, FILE *fi_s, FILE *fi_b, FILE *fo_d)
+int posterior(int nstates, FILE *fi_f, FILE *fi_s, FILE *fi_b, FILE *fo_d)
 {
   /*
-   * @param ptm: pointer to the transition matrix struct
+   * @param nstates: the number of hidden states
    * @param fi_f: file of forward vectors open for reading
    * @param fi_s: file of scaling vectors open for reading
    * @param fi_b: file of backward vectors open for reading
    * @param fo_d: file of posterior probability vectors open for writing
    */
   size_t nbytes;
-  int nstates = ptm->nstates;
   int result;
   /* seek to near the end of the backward file */
   result = fseek(fi_b, -nstates*sizeof(double), SEEK_END);
@@ -346,7 +362,7 @@ end:
   return errcode;
 }
 
-int do_posterior(struct TM *ptm,
+int do_posterior(int nstates,
     const char *forward_name, const char *scaling_name,
     const char *backward_name, const char *posterior_name)
 {
@@ -375,7 +391,7 @@ int do_posterior(struct TM *ptm,
     fprintf(stderr, "failed to open the posterior vector file for writing\n");
     errcode = -1; goto end;
   }
-  posterior(ptm, fin_f, fin_s, fin_b, fout_d);
+  posterior(nstates, fin_f, fin_s, fin_b, fout_d);
 end:
   fsafeclose(fin_f);
   fsafeclose(fin_s);
