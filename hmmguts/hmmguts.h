@@ -5,18 +5,18 @@ struct TM
 {
   /*
    * a transition matrix
-   * @member order: number of states
-   * @member value: row major matrix elements
-   * @member initial_distn: initial distribution of states
+   * @member nstates: number of states
+   * @member trans: row major matrix elements
+   * @member distn: initial distribution of states
    */
-  int order;
-  double *value;
-  double *initial_distn;
+  int nstates;
+  double *distn;
+  double *trans;
 };
 
 double* get_doubles(int ndoubles, const char *filename);
 
-int TM_init(struct TM *p, int order);
+int TM_init(struct TM *p, int nstates);
 
 int TM_init_from_names(struct TM *p, int nstates,
     const char *distribution_name, const char *transitions_name);

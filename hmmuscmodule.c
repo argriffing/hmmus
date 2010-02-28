@@ -33,24 +33,33 @@ double_vector_helper(PyObject *myfloattuple, Py_ssize_t *pn)
  */
 int TM_init_from_pytuples(struct TM *ptm, PyObject *vtuple, PyObject *mtuple)
 {
+  ptm->nstates = 0;
+  ptm->distn = NULL;
+  ptm->trans = NULL;
   Py_ssize_t ndistribution;
   Py_ssize_t ntransitions;
-  ptm->initial_distn = double_vector_helper(vtuple, &ndistribution);
-  ptm->value = double_vector_helper(mtuple, &ntransitions);
-  ptm->order = (int) ndistribution;
-  if (!ptm->value || !ptm->initial_distn)
+  ptm->distn = double_vector_helper(vtuple, &ndistribution);
+  if (!ptm->distn)
   {
-    PyErr_SetString(HmmuscError, "transition matrix init error (NULL)");
-    TM_del(ptm);
-    return -1;
+    PyErr_SetString(HmmuscError, "initial distribution init error");
+    goto fail;
   }
+  ptm->trans = double_vector_helper(mtuple, &ntransitions);
+  if (!ptm->trans)
+  {
+    PyErr_SetString(HmmuscError, "transition matrix init error");
+    goto fail;
+  }
+  ptm->nstates = (int) ndistribution;
   if (ndistribution*ndistribution != ntransitions)
   {
-    PyErr_SetString(HmmuscError, "transition matrix init error (k*k != n)");
-    TM_del(ptm);
-    return -1;
+    PyErr_SetString(HmmuscError, "transition matrix compatibility error");
+    goto fail;
   }
   return 0;
+fail:
+  TM_del(ptm);
+  return -1;
 }
 
 static PyObject *
@@ -69,7 +78,7 @@ posterior_python(PyObject *self, PyObject *args)
   if (!ok) return NULL;
   /* run the hmm algorithm */
   struct TM tm;
-  if (TM_init_from_pytuples(&tm, vtuple, mtuple)) return NULL;
+  if (TM_init_from_pytuples(&tm, vtuple, mtuple) < 0) return NULL;
   if (do_posterior(&tm, f_name, s_name, b_name, p_name))
   {
     PyErr_SetString(HmmuscError, "posterior algorithm error");
@@ -95,7 +104,7 @@ forward_python(PyObject *self, PyObject *args)
   if (!ok) return NULL;
   /* run the hmm algorithm */
   struct TM tm;
-  if (TM_init_from_pytuples(&tm, vtuple, mtuple)) return NULL;
+  if (TM_init_from_pytuples(&tm, vtuple, mtuple) < 0) return NULL;
   if (do_forward(&tm, likelihoods_name, forward_name, scaling_name))
   {
     PyErr_SetString(HmmuscError, "forward algorithm error");
@@ -121,7 +130,7 @@ backward_python(PyObject *self, PyObject *args)
   if (!ok) return NULL;
   /* run the hmm algorithm */
   struct TM tm;
-  if (TM_init_from_pytuples(&tm, vtuple, mtuple)) return NULL;
+  if (TM_init_from_pytuples(&tm, vtuple, mtuple) < 0) return NULL;
   if (do_backward(&tm, likelihoods_name, scaling_name, backward_name))
   {
     PyErr_SetString(HmmuscError, "backward algorithm error");
