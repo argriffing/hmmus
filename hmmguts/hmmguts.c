@@ -166,7 +166,7 @@ int forward(const struct TM *ptm, FILE *fin_l, FILE *fout_f, FILE *fout_s)
     scaling_factor = sum(f_curr, nstates);
     if (scaling_factor == 0.0)
     {
-      fprintf(stderr, "scaling factor 0.0 at pos %lld\n", pos);
+      fprintf(stderr, "scaling factor 0.0 at pos %zd\n", pos);
       return -1;
     }
     for (isink=0; isink<nstates; isink++)
@@ -385,7 +385,7 @@ int backward_somedisk(const struct TM *ptm, size_t nobs, FILE *fin_l,
     errcode = -1; goto end;
   }
   /* start at the end of the scaling factor array */
-  s_curr = s_big + (nobs-1);
+  s_curr = s_big + (nobs - 1);
   /* start at the beginning of the backward array */
   b_curr = b_big;
   size_t nbytes;
@@ -443,7 +443,7 @@ int posterior_somedisk(int nstates, size_t nobs,
    * @param nstates: the number of hidden states
    * @param nobs: the number of observations
    * @param f_big: array of forward vectors
-   * @param s_big: array of scaling vectors
+   * @param s_big: array of scaling factors
    * @param b_big: file of backward vectors
    * @param fout_d: file of posterior probability vectors open for writing
    */
@@ -452,7 +452,7 @@ int posterior_somedisk(int nstates, size_t nobs,
   int i;
   const double *f_curr = f_big;
   const double *s_curr = s_big;
-  const double *b_curr = b_big + nstates*(nobs-1);
+  const double *b_curr = b_big + nstates * (nobs - 1);
   /* multiply stuff together and write to the output file */
   for (pos=0; pos<nobs; pos++)
   {
@@ -499,6 +499,197 @@ end:
   free(b_big);
   return errcode;
 }
+
+int forward_nodisk(const struct TM *ptm, size_t nobs,
+    const double *l_big,
+    double *f_big, double *s_big)
+{
+  /*
+   * Run the forward algorithm.
+   * @param ptm: address of a transition matrix
+   * @param nobs: the number of observations
+   * @param l_big: the input array of likelihood vectors
+   * @param f_big: the output array of forward vectors
+   * @param s_big: the output array of scaling factors
+   */
+  int nstates = ptm->nstates;
+  double p;
+  double tprob;
+  double scaling_factor;
+  int isource, isink;
+  double *s_curr = s_big;
+  double *f_curr = f_big;
+  double *f_prev = NULL;
+  const double *l_curr = l_big;
+  int i;
+  size_t pos;
+  for (pos=0; pos<nobs; pos++)
+  {
+    for (i=0; i<nstates; i++) f_curr[i] = l_curr[i];
+    /* create the unscaled forward vector */
+    if (pos>0)
+    {
+      for (isink=0; isink<nstates; isink++)
+      {
+        p = 0.0;
+        for (isource=0; isource<nstates; isource++)
+        {
+          tprob = ptm->trans[isource*nstates + isink];
+          p += f_prev[isource] * tprob;
+        }
+        f_curr[isink] *= p;
+      }
+    } else {
+      for (isink=0; isink<nstates; isink++)
+      {
+        f_curr[isink] *= ptm->distn[isink];
+      }
+    }
+    /* scale the forward vector */
+    scaling_factor = sum(f_curr, nstates);
+    if (scaling_factor == 0.0)
+    {
+      fprintf(stderr, "scaling factor 0.0 at pos %zd\n", pos);
+      return -1;
+    }
+    for (isink=0; isink<nstates; isink++)
+    {
+      f_curr[isink] /= scaling_factor;
+    }
+    *s_curr = scaling_factor;
+    pos++;
+    f_prev = f_curr;
+    f_curr += nstates;
+    s_curr++;
+    l_curr += nstates;
+  }
+  return 0;
+}
+
+int backward_nodisk(const struct TM *ptm, size_t nobs,
+    const double *l_big,
+    const double *s_big, double *b_big)
+{
+  /*
+   * @param ptm: pointer to the transition matrix struct
+   * @param nobs: the number of observations
+   * @param l_big: likelihood vectors
+   * @param s_big: scaling factors
+   * @param b_big: backward vectors
+   * @return: negative on error
+   */
+  int nstates = ptm->nstates;
+  int isource, isink;
+  int i;
+  double scaling_factor;
+  double p;
+  int result;
+  size_t pos = 0;
+  /* initialize the pointers into the big arrays */
+  const double *s_curr = s_big + (nobs - 1);
+  const double *l_curr = l_big + nstates * (nobs - 1);
+  const double *l_prev = NULL;
+  double *b_curr = b_big;
+  double *b_prev = NULL;
+  for (pos=0; pos<nobs; pos++)
+  {
+    /* read the likelihood vector and the scaling factor */
+    scaling_factor = *s_curr;
+    if (pos)
+    {
+      for (i=0; i<nstates; i++) b_curr[i] = 0.0;
+      for (isource=0; isource<nstates; isource++)
+      {
+        for (isink=0; isink<nstates; isink++)
+        {
+          p = ptm->trans[isource*nstates + isink];
+          p *= l_prev[isink] * b_prev[isink];
+          b_curr[isource] += p;
+        }
+      }
+    } else {
+      for (i=0; i<nstates; i++) b_curr[i] = 1.0;
+    }
+    for (isource=0; isource<nstates; isource++)
+    {
+      b_curr[isource] /= scaling_factor;
+    }
+    /* increment the position */
+    l_prev = l_curr;
+    l_curr -= nstates;
+    b_prev = b_curr;
+    b_curr += nstates;
+    s_curr--;
+    pos++;
+  }
+  return 0;
+}
+
+int posterior_nodisk(int nstates, size_t nobs,
+    const double *f_big, const double *s_big, const double *b_big,
+    double *d_big)
+{
+  /*
+   * @param nstates: the number of hidden states
+   * @param nobs: the number of observations
+   * @param f_big: array of forward vectors
+   * @param s_big: array of scaling factors
+   * @param b_big: array of backward vectors
+   * @param d_big: array of posterior vectors
+   */
+  size_t pos;
+  int i;
+  const double *f_curr = f_big;
+  const double *s_curr = s_big;
+  const double *b_curr = b_big + nstates * (nobs - 1);
+  double *d_curr = d_big;
+  /* multiply stuff together and write to the output file */
+  for (pos=0; pos<nobs; pos++)
+  {
+    for (i=0; i<nstates; i++)
+    {
+      d_curr[i] = f_curr[i] * s_curr[0] * b_curr[i];
+    }
+    d_curr += nstates;
+    f_curr += nstates;
+    s_curr++;
+    b_curr -= nstates;
+  }
+  return 0;
+}
+
+int fwdbwd_nodisk(const struct TM *ptm, size_t nobs,
+    const double *l_big, double *d_big)
+{
+  int errcode = 0;
+  int nstates = ptm->nstates;
+  /* allocate the big forward, scaling, and backward arrays */
+  double *f_big = malloc(nobs*nstates*sizeof(double));
+  double *s_big = malloc(nobs*sizeof(double));
+  double *b_big = malloc(nobs*nstates*sizeof(double));
+  /* make sure that the arrays were allocated */
+  if (!f_big || !s_big || !b_big)
+  {
+    fprintf(stderr, "failed to allocate an array\n");
+    errcode = -1; goto end;
+  }
+  /* run the forward and backward algorithms */
+  if (forward_nodisk(ptm, nobs, l_big, f_big, s_big) < 0) {
+    errcode = -1; goto end;
+  }
+  if (backward_nodisk(ptm, nobs, l_big, s_big, b_big) < 0) {
+    errcode = -1; goto end;
+  }
+  if (posterior_nodisk(nstates, nobs, f_big, s_big, b_big, d_big) < 0) {
+    errcode = -1; goto end;
+  }
+end:
+  free(f_big);
+  free(s_big);
+  free(b_big);
+  return errcode;
+}
+
 
 int do_fwdbwd_somedisk(const struct TM *ptm,
     const char *likelihoods_name, const char *posterior_name)
