@@ -557,7 +557,6 @@ int forward_nodisk(const struct TM *ptm, size_t nobs,
       f_curr[isink] /= scaling_factor;
     }
     *s_curr = scaling_factor;
-    pos++;
     f_prev = f_curr;
     f_curr += nstates;
     s_curr++;
@@ -619,7 +618,6 @@ int backward_nodisk(const struct TM *ptm, size_t nobs,
     b_prev = b_curr;
     b_curr += nstates;
     s_curr--;
-    pos++;
   }
   return 0;
 }
