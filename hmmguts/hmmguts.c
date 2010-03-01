@@ -285,7 +285,6 @@ int backward_alldisk(const struct TM *ptm,
   return 0;
 }
 
-/* FIXME factor out innerloop */
 int posterior_alldisk(int nstates,
     FILE *fi_f, FILE *fi_s, FILE *fi_b, FILE *fo_d)
 {
@@ -340,54 +339,27 @@ int forward_somedisk(const struct TM *ptm, FILE *fin_l,
    * @param f_big: the output array of forward vectors
    * @param s_big: the output array of scaling factors
    */
+  int errcode = 0;
   int nstates = ptm->nstates;
-  double p;
-  double tprob;
-  double scaling_factor;
-  int isource, isink;
+  double *l_curr = malloc(nstates*sizeof(double));
   double *s_curr = s_big;
   double *f_curr = f_big;
   double *f_prev = NULL;
   size_t pos=0;
-  while (fread(f_curr, sizeof(double), nstates, fin_l))
+  while (fread(l_curr, sizeof(double), nstates, fin_l))
   {
-    /* create the unscaled forward vector */
-    if (pos>0)
+    if (forward_innerloop(pos, ptm, l_curr, f_prev, f_curr, s_curr) < 0)
     {
-      for (isink=0; isink<nstates; isink++)
-      {
-        p = 0.0;
-        for (isource=0; isource<nstates; isource++)
-        {
-          tprob = ptm->trans[isource*nstates + isink];
-          p += f_prev[isource] * tprob;
-        }
-        f_curr[isink] *= p;
-      }
-    } else {
-      for (isink=0; isink<nstates; isink++)
-      {
-        f_curr[isink] *= ptm->distn[isink];
-      }
+      errcode = -1; goto end;
     }
-    /* scale the forward vector */
-    scaling_factor = sum(f_curr, nstates);
-    if (scaling_factor == 0.0)
-    {
-      fprintf(stderr, "scaling factor 0.0 at pos %zd\n", pos);
-      return -1;
-    }
-    for (isink=0; isink<nstates; isink++)
-    {
-      f_curr[isink] /= scaling_factor;
-    }
-    *s_curr = scaling_factor;
     pos++;
     f_prev = f_curr;
     f_curr += nstates;
     s_curr++;
   }
-  return 0;
+end:
+  free(l_curr);
+  return errcode;
 }
 
 int backward_somedisk(const struct TM *ptm, size_t nobs, FILE *fin_l,
@@ -419,38 +391,13 @@ int backward_somedisk(const struct TM *ptm, size_t nobs, FILE *fin_l,
   /* start at the beginning of the backward array */
   b_curr = b_big;
   size_t nbytes;
-  int isource, isink;
-  int i;
-  double scaling_factor;
   double *ptmp;
-  double p;
   int result;
   size_t pos = 0;
   do
   {
-    /* read the likelihood vector and the scaling factor */
     nbytes = fread(l_curr, sizeof(double), nstates, fin_l);
-    scaling_factor = *s_curr;
-    if (pos)
-    {
-      for (i=0; i<nstates; i++) b_curr[i] = 0.0;
-      for (isource=0; isource<nstates; isource++)
-      {
-        for (isink=0; isink<nstates; isink++)
-        {
-          p = ptm->trans[isource*nstates + isink];
-          p *= l_prev[isink] * b_prev[isink];
-          b_curr[isource] += p;
-        }
-      }
-    } else {
-      for (i=0; i<nstates; i++) b_curr[i] = 1.0;
-    }
-    for (isource=0; isource<nstates; isource++)
-    {
-      b_curr[isource] /= scaling_factor;
-    }
-    /* swap buffers and increment the position */
+    backward_innerloop(pos, ptm, l_prev, l_curr, *s_curr, b_prev, b_curr);
     ptmp = l_curr; l_curr = l_prev; l_prev = ptmp;
     b_prev = b_curr;
     b_curr += nstates;
