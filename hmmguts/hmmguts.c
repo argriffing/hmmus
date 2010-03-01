@@ -125,7 +125,7 @@ int forward_innerloop(size_t pos, const struct TM *ptm,
   double scaling_factor;
   double p;
   double tprob;
-  int isink, isource;
+  int isource, isink;
   int nstates = ptm->nstates;
   memcpy(f_curr, l_curr, nstates*sizeof(double));
   if (pos>0)
@@ -160,6 +160,36 @@ int forward_innerloop(size_t pos, const struct TM *ptm,
   return 0;
 }
 
+int backward_innerloop(size_t pos, const struct TM *ptm,
+    const double *l_prev, const double *l_curr,
+    double scaling_factor, const double *b_prev, double *b_curr)
+{
+  int nstates = ptm->nstates;
+  int isource, isink;
+  int i;
+  double p;
+  if (pos)
+  {
+    for (i=0; i<nstates; i++) b_curr[i] = 0.0;
+    for (isource=0; isource<nstates; isource++)
+    {
+      for (isink=0; isink<nstates; isink++)
+      {
+        p = ptm->trans[isource*nstates + isink];
+        p *= l_prev[isink] * b_prev[isink];
+        b_curr[isource] += p;
+      }
+    }
+  } else {
+    for (i=0; i<nstates; i++) b_curr[i] = 1.0;
+  }
+  for (isource=0; isource<nstates; isource++)
+  {
+    b_curr[isource] /= scaling_factor;
+  }
+  return 0;
+}
+
 int forward_alldisk(const struct TM *ptm,
     FILE *fin_l, FILE *fout_f, FILE *fout_s)
 {
@@ -181,13 +211,16 @@ int forward_alldisk(const struct TM *ptm,
     fprintf(stderr, "failed to allocate an array\n");
     errcode = -1; goto end;
   }
-  double scaling_factor;
+  double sf;
   size_t pos = 0;
   while (fread(l_curr, sizeof(double), nstates, fin_l))
   {
-    forward_innerloop(pos, ptm, l_curr, f_prev, f_curr, &scaling_factor);
+    if (forward_innerloop(pos, ptm, l_curr, f_prev, f_curr, &sf) < 0)
+    {
+      errcode = -1; goto end;
+    }
     fwrite(f_curr, sizeof(double), nstates, fout_f);
-    fwrite(&scaling_factor, sizeof(double), 1, fout_s);
+    fwrite(&sf, sizeof(double), 1, fout_s);
     pos++;
     f_tmp = f_curr; f_curr = f_prev; f_prev = f_tmp;
   }
@@ -198,7 +231,6 @@ end:
   return errcode;
 }
 
-/* FIXME factor out innerloop */
 int backward_alldisk(const struct TM *ptm,
     FILE *fin_l, FILE *fin_s, FILE *fout_b)
 {
@@ -225,35 +257,15 @@ int backward_alldisk(const struct TM *ptm,
   double *b_prev = malloc(nstates*sizeof(double));
   double *l_curr = malloc(nstates*sizeof(double));
   double *l_prev = malloc(nstates*sizeof(double));
-  int isource, isink;
-  int i;
-  double scaling_factor;
-  double p;
+  double sf;
   size_t pos = 0;
   do
   {
     /* read the likelihood vector and the scaling factor */
     nbytes = fread(l_curr, sizeof(double), nstates, fin_l);
-    nbytes = fread(&scaling_factor, sizeof(double), 1, fin_s);
-    if (pos)
-    {
-      for (i=0; i<nstates; i++) b_curr[i] = 0.0;
-      for (isource=0; isource<nstates; isource++)
-      {
-        for (isink=0; isink<nstates; isink++)
-        {
-          p = ptm->trans[isource*nstates + isink];
-          p *= l_prev[isink] * b_prev[isink];
-          b_curr[isource] += p;
-        }
-      }
-    } else {
-      for (i=0; i<nstates; i++) b_curr[i] = 1.0;
-    }
-    for (isource=0; isource<nstates; isource++)
-    {
-      b_curr[isource] /= scaling_factor;
-    }
+    nbytes = fread(&sf, sizeof(double), 1, fin_s);
+    /* do the inner loop */
+    backward_innerloop(pos, ptm, l_prev, l_curr, sf, b_prev, b_curr);
     /* write the vector */
     fwrite(b_curr, sizeof(double), nstates, fout_b);
     /* swap buffers and increment the position */

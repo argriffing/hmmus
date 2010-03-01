@@ -30,6 +30,10 @@ int forward_innerloop(size_t pos, const struct TM *ptm,
     const double *l_curr, const double *f_prev,
     double *f_curr, double *s_curr);
 
+int backward_innerloop(size_t pos, const struct TM *ptm,
+    const double *l_prev, const double *l_curr,
+    double scaling_factor, const double *b_prev, double *b_curr);
+
 
 int forward_alldisk(const struct TM *ptm,
     FILE *fin_l, FILE *fout_f, FILE *fout_s);
