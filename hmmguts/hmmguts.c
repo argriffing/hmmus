@@ -189,7 +189,7 @@ int backward(const struct TM *ptm, FILE *fin_l, FILE *fin_s, FILE *fout_b)
   /*
    * @param ptm: pointer to the transition matrix struct
    * @param fin_l: file of the likelihood vectors open for reading
-   * @param fin_s: file of scaling vectors open for reading
+   * @param fin_s: file of scaling factors open for reading
    * @param fout_b: file of backward vectors open for writing
    */
   int nstates = ptm->nstates;
@@ -216,7 +216,7 @@ int backward(const struct TM *ptm, FILE *fin_l, FILE *fin_s, FILE *fout_b)
   int64_t pos = 0;
   do
   {
-    /* read the likelihood vector and the scaling vector */
+    /* read the likelihood vector and the scaling factor */
     nbytes = fread(l_curr, sizeof(double), nstates, fin_l);
     nbytes = fread(&scaling_factor, sizeof(double), 1, fin_s);
     if (pos)
@@ -262,7 +262,7 @@ int posterior(int nstates, FILE *fi_f, FILE *fi_s, FILE *fi_b, FILE *fo_d)
   /*
    * @param nstates: the number of hidden states
    * @param fi_f: file of forward vectors open for reading
-   * @param fi_s: file of scaling vectors open for reading
+   * @param fi_s: file of scaling factors open for reading
    * @param fi_b: file of backward vectors open for reading
    * @param fo_d: file of posterior probability vectors open for writing
    */
@@ -300,13 +300,242 @@ int posterior(int nstates, FILE *fi_f, FILE *fi_s, FILE *fi_b, FILE *fo_d)
   return 0;
 }
 
-int fwdbwd_somedisk(const struct TM *ptm, FILE *fin_l, FILE *fout_d)
+int forward_somedisk(const struct TM *ptm, FILE *fin_l,
+    double *f_big, double *s_big)
 {
+  /*
+   * Run the forward algorithm.
+   * @param ptm: address of a transition matrix
+   * @param fin_l: file of likelihood vectors
+   * @param f_big: the output array of forward vectors
+   * @param s_big: the output array of scaling factors
+   */
+  int nstates = ptm->nstates;
+  double p;
+  double tprob;
+  double scaling_factor;
+  int isource, isink;
+  double *s_curr = s_big;
+  double *f_curr = f_big;
+  double *f_prev = NULL;
+  size_t pos=0;
+  while (fread(f_curr, sizeof(double), nstates, fin_l))
+  {
+    /* create the unscaled forward vector */
+    if (pos>0)
+    {
+      for (isink=0; isink<nstates; isink++)
+      {
+        p = 0.0;
+        for (isource=0; isource<nstates; isource++)
+        {
+          tprob = ptm->trans[isource*nstates + isink];
+          p += f_prev[isource] * tprob;
+        }
+        f_curr[isink] *= p;
+      }
+    } else {
+      for (isink=0; isink<nstates; isink++)
+      {
+        f_curr[isink] *= ptm->distn[isink];
+      }
+    }
+    /* scale the forward vector */
+    scaling_factor = sum(f_curr, nstates);
+    if (scaling_factor == 0.0)
+    {
+      fprintf(stderr, "scaling factor 0.0 at pos %zd\n", pos);
+      return -1;
+    }
+    for (isink=0; isink<nstates; isink++)
+    {
+      f_curr[isink] /= scaling_factor;
+    }
+    *s_curr = scaling_factor;
+    pos++;
+    f_prev = f_curr;
+    f_curr += nstates;
+    s_curr++;
+  }
+  return 0;
+}
+
+int backward_somedisk(const struct TM *ptm, size_t nobs, FILE *fin_l,
+    const double *s_big, double *b_big)
+{
+  /*
+   * @param ptm: pointer to the transition matrix struct
+   * @param nobs: the number of observations
+   * @param fin_l: file of the likelihood vectors open for reading
+   * @param s_big: scaling factors
+   * @param b_big: file of backward vectors open for writing
+   * @return: negative on error
+   */
+  int errcode = 0;
+  int nstates = ptm->nstates;
+  const double *s_curr = NULL;
+  double *b_curr = NULL;
+  double *b_prev = NULL;
+  double *l_curr = malloc(nstates*sizeof(double));
+  double *l_prev = malloc(nstates*sizeof(double));
+  /* seek to near the end of the likelihood file */
+  if (fseek(fin_l, -nstates*sizeof(double), SEEK_END))
+  {
+    fprintf(stderr, "seek error\n");
+    errcode = -1; goto end;
+  }
+  /* start at the end of the scaling factor array */
+  s_curr = s_big + (nobs-1);
+  /* start at the beginning of the backward array */
+  b_curr = b_big;
+  size_t nbytes;
+  int isource, isink;
+  int i;
+  double scaling_factor;
+  double *ptmp;
+  double p;
+  int result;
+  size_t pos = 0;
+  do
+  {
+    /* read the likelihood vector and the scaling factor */
+    nbytes = fread(l_curr, sizeof(double), nstates, fin_l);
+    scaling_factor = *s_curr;
+    if (pos)
+    {
+      for (i=0; i<nstates; i++) b_curr[i] = 0.0;
+      for (isource=0; isource<nstates; isource++)
+      {
+        for (isink=0; isink<nstates; isink++)
+        {
+          p = ptm->trans[isource*nstates + isink];
+          p *= l_prev[isink] * b_prev[isink];
+          b_curr[isource] += p;
+        }
+      }
+    } else {
+      for (i=0; i<nstates; i++) b_curr[i] = 1.0;
+    }
+    for (isource=0; isource<nstates; isource++)
+    {
+      b_curr[isource] /= scaling_factor;
+    }
+    /* swap buffers and increment the position */
+    ptmp = l_curr; l_curr = l_prev; l_prev = ptmp;
+    b_prev = b_curr;
+    b_curr += nstates;
+    s_curr--;
+    pos++;
+    /* seek back and break if we go too far */
+    result = fseek(fin_l, -2*nstates*sizeof(double), SEEK_CUR);
+  } while (!result);
+end:
+  free(l_curr);
+  free(l_prev);
+  return errcode;
+}
+
+int posterior_somedisk(int nstates, size_t nobs,
+    const double *f_big, const double *s_big, const double *b_big,
+    FILE *fout_d)
+{
+  /*
+   * @param nstates: the number of hidden states
+   * @param nobs: the number of observations
+   * @param f_big: array of forward vectors
+   * @param s_big: array of scaling vectors
+   * @param b_big: file of backward vectors
+   * @param fout_d: file of posterior probability vectors open for writing
+   */
+  size_t pos;
+  double posterior;
+  int i;
+  const double *f_curr = f_big;
+  const double *s_curr = s_big;
+  const double *b_curr = b_big + nobs - 1;
+  /* multiply stuff together and write to the output file */
+  for (pos=0; pos<nobs; pos++)
+  {
+    for (i=0; i<nstates; i++)
+    {
+      posterior = f_curr[i] * s_curr[0] * b_curr[i];
+      fwrite(&posterior, sizeof(double), 1, fout_d);
+    }
+    f_curr += nstates;
+    s_curr++;
+    b_curr -= nstates;
+  }
+  return 0;
+}
+
+int fwdbwd_somedisk(const struct TM *ptm, size_t nobs,
+    FILE *fin_l, FILE *fout_d)
+{
+  int errcode = 0;
+  int nstates = ptm->nstates;
+  /* allocate the big forward, scaling, and backward arrays */
+  double *f_big = malloc(nobs*nstates*sizeof(double));
+  double *s_big = malloc(nobs*sizeof(double));
+  double *b_big = malloc(nobs*nstates*sizeof(double));
+  /* make sure that the arrays were allocated */
+  if (!f_big || !s_big || !b_big)
+  {
+    fprintf(stderr, "failed to allocate an array\n");
+    errcode = -1; goto end;
+  }
+  /* run the forward and backward algorithms */
+  if (forward_somedisk(ptm, fin_l, f_big, s_big) < 0) {
+    errcode = -1; goto end;
+  }
+  if (backward_somedisk(ptm, nobs, fin_l, s_big, b_big) < 0) {
+    errcode = -1; goto end;
+  }
+  if (posterior_somedisk(nstates, nobs, f_big, s_big, b_big, fout_d) < 0) {
+    errcode = -1; goto end;
+  }
+end:
+  free(f_big);
+  free(s_big);
+  free(b_big);
+  return errcode;
 }
 
 int do_fwdbwd_somedisk(const struct TM *ptm,
     const char *likelihoods_name, const char *posterior_name)
 {
+  int nbytes_per_pos = ptm->nstates * sizeof(double);
+  int errcode = 0;
+  size_t nobs = 0;
+  FILE *fin_l = NULL;
+  FILE *fout_d = NULL;
+  struct stat buf;
+  if (stat(likelihoods_name, &buf) < 0)
+  {
+    fprintf(stderr, "the file %s was not found\n", likelihoods_name);
+    errcode = -1; goto end;
+  }
+  if (buf.st_size % nbytes_per_pos)
+  {
+    fprintf(stderr, "%s should have %d double precision floats per position\n",
+        likelihoods_name, ptm->nstates);
+    errcode = -1; goto end;
+  }
+  if (!(fin_l = fopen(likelihoods_name, "rb")))
+  {
+    fprintf(stderr, "failed to open the likelihoods file for reading\n");
+    errcode = -1; goto end;
+  }
+  if (!(fout_d = fopen(posterior_name, "wb")))
+  {
+    fprintf(stderr, "failed to open the posterior file for writing\n");
+    errcode = -1; goto end;
+  }
+  nobs = buf.st_size / nbytes_per_pos;
+  fwdbwd_somedisk(ptm, nobs, fin_l, fout_d);
+end:
+  fsafeclose(fin_l);
+  fsafeclose(fout_d);
+  return errcode;
 }
 
 int do_forward(const struct TM *ptm,
@@ -355,7 +584,7 @@ int do_backward(const struct TM *ptm,
   }
   if (!(fin_s = fopen(scaling_name, "rb")))
   {
-    fprintf(stderr, "failed to open the scaling vector file for reading\n");
+    fprintf(stderr, "failed to open the scaling factor file for reading\n");
     errcode = -1; goto end;
   }
   if (!(fout_b = fopen(backward_name, "wb")))
@@ -387,7 +616,7 @@ int do_posterior(int nstates,
   }
   if (!(fin_s = fopen(scaling_name, "rb")))
   {
-    fprintf(stderr, "failed to open the scaling vector file for reading\n");
+    fprintf(stderr, "failed to open the scaling factor file for reading\n");
     errcode = -1; goto end;
   }
   if (!(fin_b = fopen(backward_name, "rb")))

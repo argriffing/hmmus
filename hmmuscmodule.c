@@ -63,33 +63,6 @@ fail:
 }
 
 static PyObject *
-posterior_python(PyObject *self, PyObject *args)
-{
-  PyObject *vtuple;
-  PyObject *mtuple;
-  const char *f_name;
-  const char *s_name;
-  const char *b_name;
-  const char *p_name;
-  /* read the args */
-  int ok = PyArg_ParseTuple(args, "OOssss",
-      &vtuple, &mtuple,
-      &f_name, &s_name, &b_name, &p_name);
-  if (!ok) return NULL;
-  /* run the hmm algorithm */
-  struct TM tm;
-  if (TM_init_from_pytuples(&tm, vtuple, mtuple) < 0) return NULL;
-  if (do_posterior(tm.nstates, f_name, s_name, b_name, p_name))
-  {
-    PyErr_SetString(HmmuscError, "posterior algorithm error");
-    TM_del(&tm);
-    return NULL;
-  }
-  TM_del(&tm);
-  return Py_BuildValue("i", 0);
-}
-
-static PyObject *
 forward_python(PyObject *self, PyObject *args)
 {
   PyObject *vtuple;
@@ -141,10 +114,67 @@ backward_python(PyObject *self, PyObject *args)
   return Py_BuildValue("i", 0);
 }
 
+static PyObject *
+posterior_python(PyObject *self, PyObject *args)
+{
+  PyObject *vtuple;
+  PyObject *mtuple;
+  const char *f_name;
+  const char *s_name;
+  const char *b_name;
+  const char *p_name;
+  /* read the args */
+  int ok = PyArg_ParseTuple(args, "OOssss",
+      &vtuple, &mtuple,
+      &f_name, &s_name, &b_name, &p_name);
+  if (!ok) return NULL;
+  /* run the hmm algorithm */
+  struct TM tm;
+  if (TM_init_from_pytuples(&tm, vtuple, mtuple) < 0) return NULL;
+  if (do_posterior(tm.nstates, f_name, s_name, b_name, p_name))
+  {
+    PyErr_SetString(HmmuscError, "posterior algorithm error");
+    TM_del(&tm);
+    return NULL;
+  }
+  TM_del(&tm);
+  return Py_BuildValue("i", 0);
+}
+
+static PyObject *
+fwdbwd_somedisk_python(PyObject *self, PyObject *args)
+{
+  PyObject *vtuple;
+  PyObject *mtuple;
+  const char *l_name;
+  const char *d_name;
+  /* read the args */
+  int ok = PyArg_ParseTuple(args, "OOss",
+      &vtuple, &mtuple,
+      &l_name, &d_name);
+  if (!ok) return NULL;
+  /* run the hmm algorithm */
+  struct TM tm;
+  if (TM_init_from_pytuples(&tm, vtuple, mtuple) < 0) return NULL;
+  if (do_fwdbwd_somedisk(&tm, l_name, d_name))
+  {
+    PyErr_SetString(HmmuscError, "fwdbwd_somedisk algorithm error");
+    TM_del(&tm);
+    return NULL;
+  }
+  TM_del(&tm);
+  return Py_BuildValue("i", 0);
+}
+
 static PyMethodDef HmmuscMethods[] = {
-  {"posterior", posterior_python, METH_VARARGS, "Posterior decoding."},
-  {"backward", backward_python, METH_VARARGS, "Backward algorithm."},
-  {"forward", forward_python, METH_VARARGS, "Forward algorithm."},
+  {"forward", forward_python, METH_VARARGS,
+    "Forward algorithm."},
+  {"backward", backward_python, METH_VARARGS,
+    "Backward algorithm."},
+  {"posterior", posterior_python, METH_VARARGS,
+    "Posterior decoding."},
+  {"fwdbwd_somedisk", fwdbwd_somedisk_python, METH_VARARGS,
+    "Forward-backward algorithm with intermediate arrays in RAM."},
   {NULL, NULL, 0, NULL}
 };
 

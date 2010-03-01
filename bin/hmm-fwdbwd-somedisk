@@ -1,0 +1,37 @@
+#!/usr/bin/env python
+
+"""Use forward and backward vectors to infer posterior distributions.
+The input and output binary files
+consist of double precision floating point numbers in
+the format (e.g. endianness) native to the machine.
+"""
+
+import argparse
+
+import numpy as np
+
+import hmmus
+
+
+def main(args):
+    np_distn, np_trans = hmmus.hmmhelper.load_distn_and_trans(
+            args.distribution, args.transitions)
+    hmmus.fwdbwd_somedisk(
+            np_distn, np_trans,
+            args.likelihoods, args.posterior)
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--distribution',
+            default='distribution.bin',
+            help='initial distribution (input binary file)')
+    parser.add_argument('--transitions',
+            default='transitions.bin',
+            help='transition matrix (input binary file)')
+    parser.add_argument('--likelihoods',
+            default='likelihoods.bin',
+            help='likelihood vectors (input binary file)')
+    parser.add_argument('--posterior',
+            default='posterior.bin',
+            help='posterior vectors (output binary file)')
+    main(parser.parse_args())
