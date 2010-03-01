@@ -452,7 +452,7 @@ int posterior_somedisk(int nstates, size_t nobs,
   int i;
   const double *f_curr = f_big;
   const double *s_curr = s_big;
-  const double *b_curr = b_big + nobs - 1;
+  const double *b_curr = b_big + nstates*(nobs-1);
   /* multiply stuff together and write to the output file */
   for (pos=0; pos<nobs; pos++)
   {
