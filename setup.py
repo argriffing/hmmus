@@ -21,7 +21,7 @@ from distutils.core import setup
 from distutils.core import Extension
 import os
 
-myversion_tuple = (0, 2, 2)
+myversion_tuple = (0, 2, 3)
 myversion = '.'.join(str(x) for x in myversion_tuple)
 
 scripts = [

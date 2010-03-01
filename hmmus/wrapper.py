@@ -116,8 +116,8 @@ def fwdbwd_nodisk(distribution, transitions, likelihoods):
     """
     @param distribution: initial state distribution
     @param transitions: transition probabilities
-    @param likelihoods: likelihoods
-    @return: 
+    @param likelihoods: likelihoods at each state
+    @return: posterior distribution at each state
     """
     tuple_distn, tuple_trans = _simplify(distribution, transitions)
     np_likelihoods = np.array(likelihoods, float)
@@ -129,7 +129,7 @@ def fwdbwd_nodisk(distribution, transitions, likelihoods):
         msg = 'likelihood columns should conform to the distribution'
         raise ValueError(msg)
     tuple_likelihoods = tuple(itertools.chain.from_iterable(np_likelihoods))
-    tuple_posterior = hmmusc.fwdbwd_somedisk(tuple_distn, tuple_trans,
+    tuple_posterior = hmmusc.fwdbwd_nodisk(tuple_distn, tuple_trans,
             tuple_likelihoods)
     np_posterior_unshaped = np.array(tuple_posterior, dtype=float)
     np_posterior = np_posterior_unshaped.reshape(np_likelihoods.shape)
