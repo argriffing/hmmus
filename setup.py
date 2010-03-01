@@ -21,8 +21,17 @@ from distutils.core import setup
 from distutils.core import Extension
 import os
 
-myversion_tuple = (0, 2, 1)
+myversion_tuple = (0, 2, 2)
 myversion = '.'.join(str(x) for x in myversion_tuple)
+
+scripts = [
+        'bin/hmm-demo',
+        'bin/hmm-forward',
+        'bin/hmm-backward',
+        'bin/hmm-posterior',
+        'bin/hmm-fwdbwd-somedisk',
+        'bin/hmm-fwdbwd-alldisk',
+        'bin/view-matrix']
 
 hummusc = Extension(
         name='hmmusc',
@@ -43,15 +52,6 @@ classifiers = [
         'Topic :: Scientific/Engineering :: Artificial Intelligence',
         'Topic :: Scientific/Engineering :: Information Analysis',
         'Topic :: Software Development :: Libraries :: Python Modules']
-
-scripts = [
-        'bin/hmm-demo',
-        'bin/hmm-forward',
-        'bin/hmm-backward',
-        'bin/hmm-posterior',
-        'bin/hmm-fwdbwd-somedisk',
-        'bin/view-matrix']
-
 
 download_url_first = 'http://pypi.python.org/packages/source'
 download_url_rest = 'h/hmmus/hmmus-' + myversion + '.tar.gz'

@@ -87,6 +87,21 @@ def posterior(distribution, transitions,
     return hmmusc.posterior(tuple_distn, tuple_trans,
         forward_name, scaling_name, backward_name, posterior_name)
 
+def fwdbwd_alldisk(distribution, transitions,
+        likelihoods_name,
+        forward_name, scaling_name, backward_name,
+        posterior_name):
+    """
+    @param distribution: initial state distribution
+    @param transitions: transition probabilities
+    """
+    forward(distribution, transitions,
+            likelihoods_name, forward_name, scaling_name)
+    backward(distribution, transitions,
+            likelihoods_name, scaling_name, backward_name)
+    posterior(distribution, transitions,
+            forward_name, scaling_name, backward_name, posterior_name)
+
 def fwdbwd_somedisk(distribution, transitions,
         likelihoods_name, posterior_name):
     """

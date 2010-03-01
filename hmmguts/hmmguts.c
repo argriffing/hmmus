@@ -140,7 +140,7 @@ int forward(const struct TM *ptm, FILE *fin_l, FILE *fout_f, FILE *fout_s)
   double tprob;
   double scaling_factor;
   int isource, isink;
-  int64_t pos=0;
+  size_t pos = 0;
   while (fread(f_curr, sizeof(double), nstates, fin_l))
   {
     /* create the unscaled forward vector */
@@ -213,7 +213,7 @@ int backward(const struct TM *ptm, FILE *fin_l, FILE *fin_s, FILE *fout_b)
   int i;
   double scaling_factor;
   double p;
-  int64_t pos = 0;
+  size_t pos = 0;
   do
   {
     /* read the likelihood vector and the scaling factor */
