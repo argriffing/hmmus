@@ -111,3 +111,26 @@ def fwdbwd_somedisk(distribution, transitions,
     tuple_distn, tuple_trans = _simplify(distribution, transitions)
     return hmmusc.fwdbwd_somedisk(tuple_distn, tuple_trans,
         likelihoods_name, posterior_name)
+
+def fwdbwd_nodisk(distribution, transitions, likelihoods):
+    """
+    @param distribution: initial state distribution
+    @param transitions: transition probabilities
+    @param likelihoods: likelihoods
+    @return: 
+    """
+    tuple_distn, tuple_trans = _simplify(distribution, transitions)
+    np_likelihoods = np.array(likelihoods, float)
+    if len(np_likelihoods.shape) != 2:
+        msg = 'the matrix of likelihoods should be rectangular'
+        raise ValueError(msg)
+    nlikelihoods_rows, nlikelihoods_cols = np_likelihoods.shape
+    if nlikelihoods_cols != len(distribution):
+        msg = 'likelihood columns should conform to the distribution'
+        raise ValueError(msg)
+    tuple_likelihoods = tuple(itertools.chain.from_iterable(np_likelihoods))
+    tuple_posterior = hmmusc.fwdbwd_somedisk(tuple_distn, tuple_trans,
+            tuple_likelihoods)
+    np_posterior_unshaped = np.array(tuple_posterior, dtype=float)
+    np_posterior = np_posterior_unshaped.reshape(np_likelihoods.shape)
+    return np_posterior

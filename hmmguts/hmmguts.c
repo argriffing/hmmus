@@ -583,7 +583,6 @@ int backward_nodisk(const struct TM *ptm, size_t nobs,
   int i;
   double scaling_factor;
   double p;
-  int result;
   size_t pos = 0;
   /* initialize the pointers into the big arrays */
   const double *s_curr = s_big + (nobs - 1);

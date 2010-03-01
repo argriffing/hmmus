@@ -166,7 +166,79 @@ fwdbwd_somedisk_python(PyObject *self, PyObject *args)
   return Py_BuildValue("i", 0);
 }
 
+static PyObject *
+fwdbwd_nodisk_python(PyObject *self, PyObject *args)
+{
+  struct TM tm;
+  tm.nstates = 0;
+  tm.distn = NULL;
+  tm.trans = NULL;
+  PyObject *dtuple = NULL;
+  double *d_big = NULL;
+  /* read the args */
+  PyObject *vtuple;
+  PyObject *mtuple;
+  PyObject *ltuple;
+  int ok = PyArg_ParseTuple(args, "OOO",
+      &vtuple, &mtuple, &ltuple);
+  if (!ok) goto end;
+  /* read the distribution vector and transition matrix */
+  if (TM_init_from_pytuples(&tm, vtuple, mtuple) < 0) goto end;
+  /* read the vector of likelihoods */
+  Py_ssize_t nlikelihoods;
+  double *l_big = double_vector_helper(ltuple, &nlikelihoods);
+  if (!l_big)
+  {
+    PyErr_SetString(HmmuscError, "likelihood init error");
+    goto end;
+  }
+  if (nlikelihoods % tm.nstates != 0)
+  {
+    PyErr_SetString(HmmuscError, "likelihood shape error");
+    goto end;
+  }
+  size_t nobs = nlikelihoods / tm.nstates;
+  d_big = malloc(nobs * tm.nstates * sizeof(double));
+  if (fwdbwd_nodisk(&tm, nobs, l_big, d_big))
+  {
+    PyErr_SetString(HmmuscError, "fwdbwd_nodisk algorithm error");
+    goto end;
+  }
+  dtuple = PyTuple_New(nlikelihoods);
+  Py_ssize_t i;
+  for (i=0; i<nlikelihoods; i++)
+  {
+    PyTuple_SetItem(dtuple, i, PyFloat_FromDouble(d_big[i]));
+  }
+end:
+  free(d_big);
+  TM_del(&tm);
+  return dtuple;
+}
+
+/*
+ * An experimental function that uses a buffer interface.
+ */
+static PyObject *
+hello_buffer_python(PyObject *self, PyObject *args)
+{
+  /* read the args */
+  int ok = PyArg_ParseTuple(args, "");
+  if (!ok) return NULL;
+  /* say hi */
+  int i;
+  double hi[2] = {2.71828, 3.14159};
+  PyObject *mytuple = PyTuple_New(2);
+  for (i=0; i<2; i++)
+  {
+    PyTuple_SetItem(mytuple, i, PyFloat_FromDouble(hi[i]));
+  }
+  return mytuple;
+}
+
 static PyMethodDef HmmuscMethods[] = {
+  {"hello_buffer", hello_buffer_python, METH_VARARGS,
+    "an experimental function that uses the buffer interface"},
   {"forward", forward_python, METH_VARARGS,
     "Forward algorithm."},
   {"backward", backward_python, METH_VARARGS,
@@ -175,6 +247,8 @@ static PyMethodDef HmmuscMethods[] = {
     "Posterior decoding."},
   {"fwdbwd_somedisk", fwdbwd_somedisk_python, METH_VARARGS,
     "Forward-backward algorithm with intermediate arrays in RAM."},
+  {"fwdbwd_nodisk", fwdbwd_nodisk_python, METH_VARARGS,
+    "Forward-backward algorithm with all arrays in RAM."},
   {NULL, NULL, 0, NULL}
 };
 
