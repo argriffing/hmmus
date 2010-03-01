@@ -26,11 +26,19 @@ int TM_del(struct TM *p);
 double sum(double *v, int n);
 
 
-int forward(const struct TM *ptm, FILE *fin_l, FILE *fout_f, FILE *fout_s);
+int forward_innerloop(size_t pos, const struct TM *ptm,
+    const double *l_curr, const double *f_prev,
+    double *f_curr, double *s_curr);
 
-int backward(const struct TM *ptm, FILE *fin_l, FILE *fin_s, FILE *fout_b);
 
-int posterior(int nstates, FILE *fi_f, FILE *fi_s, FILE *fi_b, FILE *fo_d);
+int forward_alldisk(const struct TM *ptm,
+    FILE *fin_l, FILE *fout_f, FILE *fout_s);
+
+int backward_alldisk(const struct TM *ptm,
+    FILE *fin_l, FILE *fin_s, FILE *fout_b);
+
+int posterior_alldisk(int nstates,
+    FILE *fi_f, FILE *fi_s, FILE *fi_b, FILE *fo_d);
 
 
 int forward_somedisk(const struct TM *ptm, FILE *fin_l,

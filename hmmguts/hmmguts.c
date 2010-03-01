@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <inttypes.h>
 #include <sys/stat.h>
 
@@ -118,7 +119,49 @@ double sum(double *v, int n)
   return total;
 }
 
-int forward(const struct TM *ptm, FILE *fin_l, FILE *fout_f, FILE *fout_s)
+int forward_innerloop(size_t pos, const struct TM *ptm,
+    const double *l_curr, const double *f_prev, double *f_curr, double *s_curr)
+{
+  double scaling_factor;
+  double p;
+  double tprob;
+  int isink, isource;
+  int nstates = ptm->nstates;
+  memcpy(f_curr, l_curr, nstates*sizeof(double));
+  if (pos>0)
+  {
+    for (isink=0; isink<nstates; isink++)
+    {
+      p = 0.0;
+      for (isource=0; isource<nstates; isource++)
+      {
+        tprob = ptm->trans[isource*nstates + isink];
+        p += f_prev[isource] * tprob;
+      }
+      f_curr[isink] *= p;
+    }
+  } else {
+    for (isink=0; isink<nstates; isink++)
+    {
+      f_curr[isink] *= ptm->distn[isink];
+    }
+  }
+  scaling_factor = sum(f_curr, nstates);
+  if (scaling_factor == 0.0)
+  {
+    fprintf(stderr, "scaling factor 0.0 at pos %zd\n", pos);
+    return -1;
+  }
+  for (isink=0; isink<nstates; isink++)
+  {
+    f_curr[isink] /= scaling_factor;
+  }
+  *s_curr = scaling_factor;
+  return 0;
+}
+
+int forward_alldisk(const struct TM *ptm,
+    FILE *fin_l, FILE *fout_f, FILE *fout_s)
 {
   /*
    * Run the forward algorithm.
@@ -127,64 +170,37 @@ int forward(const struct TM *ptm, FILE *fin_l, FILE *fout_f, FILE *fout_s)
    * @param fout_f: file of forward vectors
    * @param fout_s: file of scaling factors
    */
+  int errcode = 0;
   int nstates = ptm->nstates;
   double *f_tmp;
+  double *l_curr = malloc(nstates*sizeof(double));
   double *f_curr = malloc(nstates*sizeof(double));
   double *f_prev = malloc(nstates*sizeof(double));
-  if (!f_curr || !f_prev)
+  if (!f_curr || !f_prev || !l_curr)
   {
     fprintf(stderr, "failed to allocate an array\n");
-    return -1;
+    errcode = -1; goto end;
   }
-  double p;
-  double tprob;
   double scaling_factor;
-  int isource, isink;
   size_t pos = 0;
-  while (fread(f_curr, sizeof(double), nstates, fin_l))
+  while (fread(l_curr, sizeof(double), nstates, fin_l))
   {
-    /* create the unscaled forward vector */
-    if (pos>0)
-    {
-      for (isink=0; isink<nstates; isink++)
-      {
-        p = 0.0;
-        for (isource=0; isource<nstates; isource++)
-        {
-          tprob = ptm->trans[isource*nstates + isink];
-          p += f_prev[isource] * tprob;
-        }
-        f_curr[isink] *= p;
-      }
-    } else {
-      for (isink=0; isink<nstates; isink++)
-      {
-        f_curr[isink] *= ptm->distn[isink];
-      }
-    }
-    /* scale the forward vector */
-    scaling_factor = sum(f_curr, nstates);
-    if (scaling_factor == 0.0)
-    {
-      fprintf(stderr, "scaling factor 0.0 at pos %zd\n", pos);
-      return -1;
-    }
-    for (isink=0; isink<nstates; isink++)
-    {
-      f_curr[isink] /= scaling_factor;
-    }
+    forward_innerloop(pos, ptm, l_curr, f_prev, f_curr, &scaling_factor);
     fwrite(f_curr, sizeof(double), nstates, fout_f);
     fwrite(&scaling_factor, sizeof(double), 1, fout_s);
     pos++;
-    /* swap f_prev and f_curr */
     f_tmp = f_curr; f_curr = f_prev; f_prev = f_tmp;
   }
+end:
+  free(l_curr);
   free(f_curr);
   free(f_prev);
-  return 0;
+  return errcode;
 }
 
-int backward(const struct TM *ptm, FILE *fin_l, FILE *fin_s, FILE *fout_b)
+/* FIXME factor out innerloop */
+int backward_alldisk(const struct TM *ptm,
+    FILE *fin_l, FILE *fin_s, FILE *fout_b)
 {
   /*
    * @param ptm: pointer to the transition matrix struct
@@ -257,7 +273,9 @@ int backward(const struct TM *ptm, FILE *fin_l, FILE *fin_s, FILE *fout_b)
   return 0;
 }
 
-int posterior(int nstates, FILE *fi_f, FILE *fi_s, FILE *fi_b, FILE *fo_d)
+/* FIXME factor out innerloop */
+int posterior_alldisk(int nstates,
+    FILE *fi_f, FILE *fi_s, FILE *fi_b, FILE *fo_d)
 {
   /*
    * @param nstates: the number of hidden states
@@ -749,7 +767,7 @@ int do_forward(const struct TM *ptm,
     fprintf(stderr, "failed to open the scaling factor file for writing\n");
     errcode = -1; goto end;
   }
-  forward(ptm, fin_l, fout_f, fout_s);
+  forward_alldisk(ptm, fin_l, fout_f, fout_s);
 end:
   fsafeclose(fin_l);
   fsafeclose(fout_f);
@@ -780,7 +798,7 @@ int do_backward(const struct TM *ptm,
     fprintf(stderr, "failed to open the backward vector file for writing\n");
     errcode = -1; goto end;
   }
-  backward(ptm, fin_l, fin_s, fout_b);
+  backward_alldisk(ptm, fin_l, fin_s, fout_b);
 end:
   fsafeclose(fin_l);
   fsafeclose(fin_s);
@@ -817,7 +835,7 @@ int do_posterior(int nstates,
     fprintf(stderr, "failed to open the posterior vector file for writing\n");
     errcode = -1; goto end;
   }
-  posterior(nstates, fin_f, fin_s, fin_b, fout_d);
+  posterior_alldisk(nstates, fin_f, fin_s, fin_b, fout_d);
 end:
   fsafeclose(fin_f);
   fsafeclose(fin_s);

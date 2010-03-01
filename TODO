@@ -3,5 +3,4 @@ WISHLIST:
 - add real documentation (e.g. sphinx)
 - add structured docstrings to the python code (e.g. epydoc, reST)
 - add real unit tests instead of just manually executed demos
-- allow non-file ways to specify the state distribution and transitions
-- allow the forward-backward algorithm to run in RAM instead of on disk
+- use something more advanced than tuples as the Python/C array interface
