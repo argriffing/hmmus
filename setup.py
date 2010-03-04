@@ -21,8 +21,8 @@ from distutils.core import setup
 from distutils.core import Extension
 import os
 
-myversion_tuple = (0, 2, 7)
-myversion = '.'.join(str(x) for x in myversion_tuple)
+from hmmus import hmmus_version
+
 
 scripts = [
         'bin/hmm-demo',
@@ -54,7 +54,7 @@ classifiers = [
         'Topic :: Software Development :: Libraries :: Python Modules']
 
 download_url_first = 'http://pypi.python.org/packages/source'
-download_url_rest = 'h/hmmus/hmmus-' + myversion + '.tar.gz'
+download_url_rest = 'h/hmmus/hmmus-' + hmmus_version + '.tar.gz'
 download_url = os.path.join(download_url_first, download_url_rest)
 
 # This seems like a standard method.
@@ -62,7 +62,7 @@ long_description = open('README.rst').read()
 
 setup(
         name = 'hmmus',
-        version = myversion,
+        version = hmmus_version,
         author = 'Alex Griffing',
         author_email = 'argriffi@ncsu.edu',
         maintainer = 'Alex Griffing',
