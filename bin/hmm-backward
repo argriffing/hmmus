@@ -10,13 +10,14 @@ import argparse
 
 import numpy as np
 
-import hmmus
+from hmmus import hmmhelper
+from hmmus import hmm
 
 
 def main(args):
-    np_distn, np_trans = hmmus.hmmhelper.load_distn_and_trans(
+    np_distn, np_trans = hmmhelper.load_distn_and_trans(
             args.distribution, args.transitions)
-    hmmus.backward(
+    hmm.backward(
             np_distn, np_trans,
             args.likelihoods, args.scaling, args.backward)
 

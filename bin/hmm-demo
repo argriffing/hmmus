@@ -7,26 +7,26 @@ Each of the three available demos creates three files.
 import argparse
 import numpy as np
 
-import hmmus.demo
+from hmmus import demo
 
 
 def main(args):
     # instantiate a demo given the user choice
     if args.demo == 'smith':
-        demo = hmmus.demo.SmithDemo()
+        mydemo = demo.SmithDemo()
     elif args.demo == 'eddy':
-        demo = hmmus.demo.EddyDemo()
+        mydemo = demo.EddyDemo()
     elif args.demo == 'durbin':
-        demo = hmmus.demo.DurbinDemo()
+        mydemo = demo.DurbinDemo()
     else:
         raise TypeError
     # create the files using the demo
     with open(args.likelihoods_out, 'wb') as fout:
-        demo.get_likelihoods().tofile(fout)
+        mydemo.get_likelihoods().tofile(fout)
     with open(args.transitions_out, 'wb') as fout:
-        demo.get_transitions().tofile(fout)
+        mydemo.get_transitions().tofile(fout)
     with open(args.distribution_out, 'wb') as fout:
-        demo.get_distribution().tofile(fout)
+        mydemo.get_distribution().tofile(fout)
 
 
 if __name__ == '__main__':
