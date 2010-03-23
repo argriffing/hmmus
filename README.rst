@@ -147,9 +147,10 @@ run these three commands::
 
 This should create four more binary files in the ``mydemo`` directory,
 including one named ``posterior.bin`` which has the distributions of interest.
-To look at this binary file, use the viewer installed with hmmus::
+To look at this binary file, use the octal display utility with a format
+of 8-byte floating point numbers and a width of 24 bytes per row::
 
-    $ view-matrix --ncols=3 posterior.bin
+    $ od --format=f8 --width=24 posterior.bin
 
 Until better documentation is written,
 information about the usage of the hmmus-associated scripts can be found
