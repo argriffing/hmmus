@@ -100,6 +100,57 @@ class EddyDemo:
             assert abs(1.0 - sum(distn.values())) < 1e-10
         return np.array([[d[obs] for d in distns] for obs in observations])
 
+    def get_expected_scaling(self):
+        """
+        This is for regression testing.
+        """
+        return np.array([
+            2.500000000000000e-01,
+            2.250000000000000e-01,
+            2.250000000000000e-01,
+            2.250000000000000e-01,
+            2.300000000000000e-01,
+            2.288043478260870e-01,
+            3.112589073634204e-01,
+            2.778657280219780e-01,
+            2.195117068016239e-01,
+            2.947153183144838e-01,
+            3.031082294941561e-01,
+            3.177687204825244e-01,
+            1.433198888830900e-01,
+            1.406205210251966e-01,
+            2.843698055395475e-01,
+            1.959737111740095e-01,
+            3.002220700816590e-01,
+            1.435579042788666e-01,
+            2.327771637086132e-01,
+            2.891297743804224e-01,
+            2.992975648883980e-01,
+            3.146783498106365e-01,
+            1.477836526869613e-01,
+            3.148659166602665e-01,
+            1.268641738877951e-01,
+            2.970410303325410e-01,
+            6.250048479496788e-02])
+
+    def get_expected_posterior(self):
+        """
+        This is for regression testing.
+        """
+        return np.array([])
+
+    def get_expected_forward(self):
+        """
+        This is for regression testing.
+        """
+        return np.array([])
+
+    def get_expected_backward(self):
+        """
+        This is for regression testing.
+        """
+        return np.array([])
+
 
 class SmithDemo:
     """
@@ -127,3 +178,47 @@ class SmithDemo:
         for distn in distns:
             assert abs(1.0 - sum(distn.values())) < 1e-10
         return np.array([[d[obs] for d in distns] for obs in observations])
+
+    def get_expected_scaling(self):
+        """
+        This is for regression testing.
+        """
+        return np.array([
+            8.750000000000000e-01,
+            1.562500000000000e-01,
+            2.453125000000000e-01,
+            2.016321656050955e-01,
+            1.510982230997039e-01])
+
+    def get_expected_posterior(self):
+        """
+        This is for regression testing.
+        """
+        return np.array([
+            [1.0000000000000000, 0.0000000000000000, 0.0],
+            [0.5173540220498163, 0.4826459779501838, 0.0],
+            [0.7060024499795835, 0.2939975500204164, 0.0],
+            [0.6545528787260105, 0.3454471212739894, 0.0],
+            [0.0000000000000000, 0.0000000000000000, 1.0]])
+
+    def get_expected_forward(self):
+        """
+        This is for regression testing.
+        """
+        return np.array([
+            [1.0000000000000000, 0.0000000000000000, 0.0],
+            [0.7000000000000000, 0.3000000000000000, 0.0],
+            [0.8471337579617835, 0.1528662420382166, 0.0],
+            [0.7912142152023692, 0.2087857847976308, 0.0],
+            [0.0000000000000000, 0.0000000000000000, 1.0]])
+
+    def get_expected_backward(self):
+        """
+        This is for regression testing.
+        """
+        return np.array([
+            [6.618211514904042, 6.618211514904042, 6.618211514904042],
+            [4.102899142507145, 8.205798285014291, 32.82319314005716],
+            [3.397305022458146, 7.839934667211106, 0.000000000000000],
+            [4.730093915884034, 10.29644752960392, 0.000000000000000],
+            [1.142857142857143, 2.548912092399230, 0.000000000000000]])

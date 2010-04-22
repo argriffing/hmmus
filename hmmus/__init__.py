@@ -1,1 +1,1 @@
-hmmus_version = '0.2.11'
+hmmus_version = '0.2.13'

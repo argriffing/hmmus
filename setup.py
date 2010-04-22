@@ -30,8 +30,7 @@ scripts = [
         'bin/hmm-backward',
         'bin/hmm-posterior',
         'bin/hmm-fwdbwd-somedisk',
-        'bin/hmm-fwdbwd-alldisk',
-        'bin/view-matrix']
+        'bin/hmm-fwdbwd-alldisk']
 
 hummusc = Extension(
         name='hmmusc',
