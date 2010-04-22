@@ -25,6 +25,8 @@ from hmmus import hmmus_version
 
 
 scripts = [
+        'bin/hmm-od',
+        'bin/hmm-regression-test',
         'bin/hmm-demo',
         'bin/hmm-forward',
         'bin/hmm-backward',

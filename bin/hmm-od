@@ -48,7 +48,7 @@ if __name__ == '__main__':
     """
     parser.add_argument('--dtype', default='d',
             help='numpy data type')
-    parser.add_argument('--format', default='8e',
+    parser.add_argument('--format', default='0.8e',
             help='print using this format string')
     parser.add_argument('--columns', type=int, default=0,
             help='the data matrix has this many columns')
