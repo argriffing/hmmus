@@ -22,6 +22,8 @@ This project would be especially useless in the following cases:
 * All of the data can fit in RAM and numerical stability is not an issue.
 * The hidden state transitions are defined by a large sparse graph.
 * The emission distributions are uncomplicated (e.g. finite or normal).
+* A variable number of observations are emitted per hidden state.
+* Silent states other than start and stop states are used.
 
 
 Requirements
