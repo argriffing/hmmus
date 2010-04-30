@@ -5,12 +5,14 @@
 
 from tempfile import mktemp
 import os
+import unittest
 
 import argparse
 import numpy as np
 
 from hmmus import demo
 from hmmus import hmm
+
 
 class TempFileManager:
     def __init__(self):
@@ -46,104 +48,107 @@ def check_shape(shape, arr, name):
         msg_b = 'the shape %s cannot be reshaped to %s' % (arr.shape, shape)
         raise Exception(msg_a + msg_b)
 
-def test_fwdbwd_alldisk(d):
-    """
-    @param d: a demo instance
-    """
-    tfm = TempFileManager()
-    # create the file of likelihoods
-    with open(tfm.fn_likelihood, 'wb') as fout:
-        d.get_likelihoods().tofile(fout)
-    # run the hmm to create the output files
-    hmm.fwdbwd_alldisk(
-        d.get_distribution(), d.get_transitions(),
-        tfm.fn_likelihood,
-        tfm.fn_forward, tfm.fn_scaling, tfm.fn_backward, tfm.fn_posterior)
-    # get the expected output
-    ex_forward = d.get_expected_forward()
-    ex_scaling = d.get_expected_scaling()
-    ex_backward = d.get_expected_backward()
-    ex_post = d.get_expected_posterior()
-    # define the shapes
-    sh_forward = ex_forward.shape
-    sh_scaling = ex_scaling.shape
-    sh_backward = ex_backward.shape
-    sh_post = ex_post.shape
-    # get the observed output
-    ob_forward = np.fromfile(tfm.fn_forward, dtype='d')
-    ob_scaling = np.fromfile(tfm.fn_scaling, dtype='d')
-    ob_backward = np.fromfile(tfm.fn_backward, dtype='d')
-    ob_post = np.fromfile(tfm.fn_posterior, dtype='d')
-    # check shape compatibility
-    check_shape(sh_forward, ob_forward, 'forward')
-    check_shape(sh_scaling, ob_scaling, 'scaling')
-    check_shape(sh_backward, ob_backward, 'backward')
-    check_shape(sh_post, ob_post, 'posterior')
-    # reshape the output arrays
-    ob_forward = ob_forward.reshape(sh_forward)
-    ob_scaling = ob_scaling.reshape(sh_scaling)
-    ob_backward = ob_backward.reshape(sh_backward)
-    ob_post = ob_post.reshape(sh_post)
-    # compare expected and observed
-    if not np.allclose(ex_forward, ob_forward):
-        raise Exception('forward array mismatch')
-    if not np.allclose(ex_scaling, ob_scaling):
-        raise Exception('scaling array mismatch')
-    if not np.allclose(ex_backward, ob_backward):
-        raise Exception('backward array mismatch')
-    if not np.allclose(ex_post, ob_post):
-        raise Exception('posterior array mismatch')
-    # unlink all files
-    tfm.unlink_all()
+class TestHmm(unittest.TestCase):
 
-def test_fwdbwd_somedisk(d):
-    """
-    @param d: a demo instance
-    """
-    tfm = TempFileManager()
-    # create the file of likelihoods
-    with open(tfm.fn_likelihood, 'wb') as fout:
-        d.get_likelihoods().tofile(fout)
-    # get the initial distribution and the transition matrix
-    np_distn = d.get_distribution()
-    np_trans = d.get_transitions()
-    # write the posterior distribution as a file
-    hmm.fwdbwd_somedisk(np_distn, np_trans,
-            tfm.fn_likelihood, tfm.fn_posterior)
-    # get the expected posterior data matrix and its shape
-    ex_post = d.get_expected_posterior()
-    sh_post = ex_post.shape
-    # get the observed posterior data matrix
-    ob_post = np.fromfile(tfm.fn_posterior, dtype='d')
-    # check the compatibility of the shape of the matrix
-    check_shape(sh_post, ob_post, 'posterior')
-    # reshape the computed posterior matrix
-    ob_post = ob_post.reshape(sh_post)
-    # compare expected and observed matrices
-    if not np.allclose(ex_post, ob_post):
-        raise Exception('posterior array mismatch')
-    # unlink all files
-    tfm.unlink_all()
+    def help_test_fwdbwd_alldisk(self, d):
+        """
+        @param d: a demo instance
+        """
+        tfm = TempFileManager()
+        # create the file of likelihoods
+        with open(tfm.fn_likelihood, 'wb') as fout:
+            d.get_likelihoods().tofile(fout)
+        # run the hmm to create the output files
+        hmm.fwdbwd_alldisk(
+            d.get_distribution(), d.get_transitions(),
+            tfm.fn_likelihood,
+            tfm.fn_forward, tfm.fn_scaling, tfm.fn_backward, tfm.fn_posterior)
+        # get the expected output
+        ex_forward = d.get_expected_forward()
+        ex_scaling = d.get_expected_scaling()
+        ex_backward = d.get_expected_backward()
+        ex_post = d.get_expected_posterior()
+        # define the shapes
+        sh_forward = ex_forward.shape
+        sh_scaling = ex_scaling.shape
+        sh_backward = ex_backward.shape
+        sh_post = ex_post.shape
+        # get the observed output
+        ob_forward = np.fromfile(tfm.fn_forward, dtype='d')
+        ob_scaling = np.fromfile(tfm.fn_scaling, dtype='d')
+        ob_backward = np.fromfile(tfm.fn_backward, dtype='d')
+        ob_post = np.fromfile(tfm.fn_posterior, dtype='d')
+        # check shape compatibility
+        check_shape(sh_forward, ob_forward, 'forward')
+        check_shape(sh_scaling, ob_scaling, 'scaling')
+        check_shape(sh_backward, ob_backward, 'backward')
+        check_shape(sh_post, ob_post, 'posterior')
+        # reshape the output arrays
+        ob_forward = ob_forward.reshape(sh_forward)
+        ob_scaling = ob_scaling.reshape(sh_scaling)
+        ob_backward = ob_backward.reshape(sh_backward)
+        ob_post = ob_post.reshape(sh_post)
+        # compare expected and observed
+        for expected, observed, name in (
+                (ex_forward, ob_forward, 'forward'),
+                (ex_scaling, ob_scaling, 'scaling'),
+                (ex_backward, ob_backward, 'backward'),
+                (ex_post, ob_post, 'posterior')):
+            self.assertTrue(np.allclose(expected, observed),
+                    name + ' array mismatch')
+        # unlink all files
+        tfm.unlink_all()
 
-def test_fwdbwd_nodisk(d):
-    """
-    @param d: a demo instance
-    """
-    # compute the posterior
-    ob_post = hmm.fwdbwd_nodisk(d.get_distribution(), d.get_transitions(),
-            d.get_likelihoods())
-    # get the expected posterior
-    ex_post = d.get_expected_posterior()
-    # compare the computed posterior to the expected posterior
-    if not np.allclose(ex_post, ob_post):
-        raise Exception('posterior array mismatch')
+    def help_test_fwdbwd_somedisk(self, d):
+        """
+        @param d: a demo instance
+        """
+        tfm = TempFileManager()
+        # create the file of likelihoods
+        with open(tfm.fn_likelihood, 'wb') as fout:
+            d.get_likelihoods().tofile(fout)
+        # get the initial distribution and the transition matrix
+        np_distn = d.get_distribution()
+        np_trans = d.get_transitions()
+        # write the posterior distribution as a file
+        hmm.fwdbwd_somedisk(np_distn, np_trans,
+                tfm.fn_likelihood, tfm.fn_posterior)
+        # get the expected posterior data matrix and its shape
+        ex_post = d.get_expected_posterior()
+        sh_post = ex_post.shape
+        # get the observed posterior data matrix
+        ob_post = np.fromfile(tfm.fn_posterior, dtype='d')
+        # check the compatibility of the shape of the matrix
+        check_shape(sh_post, ob_post, 'posterior')
+        # reshape the computed posterior matrix
+        ob_post = ob_post.reshape(sh_post)
+        # compare expected and observed matrices
+        self.assertTrue(np.allclose(ex_post, ob_post),
+                'posterior array mismatch')
+        # unlink all files
+        tfm.unlink_all()
 
-def main(args):
-    for d in [demo.SmithDemo(), demo.EddyDemo()]:
-        test_fwdbwd_alldisk(d)
-        test_fwdbwd_somedisk(d)
-        test_fwdbwd_nodisk(d)
+    def help_test_fwdbwd_nodisk(self, d):
+        """
+        @param d: a demo instance
+        """
+        # compute the posterior
+        ob_post = hmm.fwdbwd_nodisk(d.get_distribution(), d.get_transitions(),
+                d.get_likelihoods())
+        # get the expected posterior
+        ex_post = d.get_expected_posterior()
+        # compare the computed posterior to the expected posterior
+        self.assertTrue(np.allclose(ex_post, ob_post),
+                'posterior array mismatch')
+
+    def test_all(self):
+        for d in [demo.SmithDemo(), demo.EddyDemo()]:
+            self.help_test_fwdbwd_alldisk(d)
+            self.help_test_fwdbwd_somedisk(d)
+            self.help_test_fwdbwd_nodisk(d)
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
-    main(parser.parse_args())
+    args = parser.parse_args()
+    unittest.main()
