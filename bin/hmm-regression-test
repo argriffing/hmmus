@@ -96,11 +96,49 @@ def test_fwdbwd_alldisk(d):
     # unlink all files
     tfm.unlink_all()
 
+def test_fwdbwd_somedisk(d):
+    """
+    @param d: a demo instance
+    """
+    tfm = TempFileManager()
+    # create the file of likelihoods
+    with open(tfm.fn_likelihood, 'wb') as fout:
+        d.get_likelihoods().tofile(fout)
+    # get the initial distribution and the transition matrix
+    np_distn = d.get_distribution()
+    np_trans = d.get_transitions()
+    # write the posterior distribution as a file
+    hmm.fwdbwd_somedisk(np_distn, np_trans,
+            tfm.fn_likelihood, tfm.fn_posterior)
+    # get the expected posterior data matrix and its shape
+    ex_post = d.get_expected_posterior()
+    sh_post = ex_post.shape
+    # get the observed posterior data matrix
+    ob_post = np.fromfile(tfm.fn_posterior, dtype='d')
+    # check the compatibility of the shape of the matrix
+    check_shape(sh_post, ob_post, 'posterior')
+    # reshape the computed posterior matrix
+    ob_post = ob_post.reshape(sh_post)
+    # compare expected and observed matrices
+    if not np.allclose(ex_post, ob_post):
+        raise Exception('posterior array mismatch')
+    # unlink all files
+    tfm.unlink_all()
+
+def test_fwdbwd_nodisk(d):
+    """
+    @param d: a demo instance
+    """
+    tfm = TempFileManager()
+    # FIXME
+    # unlink all files
+    tfm.unlink_all()
+
 def main(args):
     for d in [demo.SmithDemo(), demo.EddyDemo()]:
         test_fwdbwd_alldisk(d)
-        #test_fwdbwd_somedisk(d)
-
+        test_fwdbwd_somedisk(d)
+        test_fwdbwd_nodisk(d)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
