@@ -129,10 +129,14 @@ def test_fwdbwd_nodisk(d):
     """
     @param d: a demo instance
     """
-    tfm = TempFileManager()
-    # FIXME
-    # unlink all files
-    tfm.unlink_all()
+    # compute the posterior
+    ob_post = hmm.fwdbwd_nodisk(d.get_distribution(), d.get_transitions(),
+            d.get_likelihoods())
+    # get the expected posterior
+    ex_post = d.get_expected_posterior()
+    # compare the computed posterior to the expected posterior
+    if not np.allclose(ex_post, ob_post):
+        raise Exception('posterior array mismatch')
 
 def main(args):
     for d in [demo.SmithDemo(), demo.EddyDemo()]:
