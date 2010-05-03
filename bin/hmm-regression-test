@@ -12,7 +12,7 @@ import numpy as np
 
 from hmmus import demo
 from hmmus import hmm
-
+import hmmusc
 
 class TempFileManager:
     def __init__(self):
@@ -141,11 +141,28 @@ class TestHmm(unittest.TestCase):
         self.assertTrue(np.allclose(ex_post, ob_post),
                 'posterior array mismatch')
 
+    def help_test_newbuf_fwdbwd_nodisk(self, d):
+        """
+        @param d: a demo instance
+        """
+        # compute the posterior
+        ob_distn = d.get_distribution()
+        ob_trans = d.get_transitions()
+        ob_like = d.get_likelihoods()
+        ob_post = ob_like.copy()
+        hmmusc.newbuf_fwdbwd_nodisk(ob_distn, ob_trans, ob_like, ob_post)
+        # get the expected posterior
+        ex_post = d.get_expected_posterior()
+        # compare the computed posterior to the expected posterior
+        self.assertTrue(np.allclose(ex_post, ob_post),
+                'posterior array mismatch')
+
     def test_all(self):
         for d in [demo.SmithDemo(), demo.EddyDemo()]:
             self.help_test_fwdbwd_alldisk(d)
             self.help_test_fwdbwd_somedisk(d)
             self.help_test_fwdbwd_nodisk(d)
+            self.help_test_newbuf_fwdbwd_nodisk(d)
 
 
 if __name__ == '__main__':
