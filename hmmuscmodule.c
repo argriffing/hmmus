@@ -73,20 +73,20 @@ int check_shape_compatibility(Py_ssize_t *distn, Py_ssize_t *trans,
         "as the distribution vector");
     return -1;
   }
-  if (like[0] != nstates) {
+  if (like[1] != nstates) {
     PyErr_SetString(HmmuscError,
         "the likelihoods matrix should have the same number of states "
         "as the distribution vector");
     return -1;
   }
-  int npositions = like[1];
-  if (post[0] != nstates) {
+  int npositions = like[0];
+  if (post[1] != nstates) {
     PyErr_SetString(HmmuscError,
         "the posterior matrix should have the same number of states "
         "as the distribution vector");
     return -1;
   }
-  if (post[1] != npositions) {
+  if (post[0] != npositions) {
     PyErr_SetString(HmmuscError,
         "the posterior matrix should have the same number of positions "
         "as the likelihoods matrix");
@@ -219,7 +219,7 @@ newbuf_fwdbwd_nodisk_python(PyObject *self, PyObject *args)
   }
   /* get some information */
   int nstates = distn_view.shape[0];
-  int npositions = like_view.shape[1];
+  int npositions = like_view.shape[0];
   /* fill the posterior matrix */
   struct TM tm;
   tm.nstates = nstates;
