@@ -71,14 +71,43 @@ int TM_init_from_buffers(struct TM *ptm, Py_buffer *distn, Py_buffer *trans)
   return 0;
 }
 
+/* Set an error message and return -1 if an error is found.
+ */
+int check_interfaces(int n, PyObject **pobjects, char **names) {
+  int i;
+  /* get the number of objects with a buffer interface */
+  int nvalid = 0;
+  for (i=0; i<n; ++i) {
+    if (PyObject_CheckBuffer(pobjects[i])) {
+      ++nvalid;
+    }
+  }
+  if (!nvalid) {
+    PyErr_SetString(HmmusbufError,
+        "these objects should support the buffer interface");
+    return -1;
+  }
+  /* report the first nonconformant object if any */
+  char msg[1000];
+  char fmtstr[] = "%s should support the buffer interface";
+  for (i=0; i<n; ++i) {
+    if (!PyObject_CheckBuffer(pobjects[i])) {
+      sprintf(msg, fmtstr, names[i]);
+      PyErr_SetString(HmmusbufError, msg);
+      return -1;
+    }
+  }
+  return 0;
+}
+
 /* Collect new-style buffer stuff here.
  */
 struct HMBUFA {
+  TM tm;
   Py_buffer distn;
   Py_buffer trans;
   int has_distn;
   int has_trans;
-  TM tm;
 };
 
 /* Collect new-style buffer stuff here.
@@ -93,217 +122,185 @@ struct HMBUFB {
 
 int HMBUFA_init(struct HMBUFA *p, PyObject *distn, PyObject *trans)
 {
+  HMBUFA_clear(p);
+  /* check the interfaces */
+  PyObject *pyobjects[] = {distn, trans};
+  char *names[] = {"the distribution vector", "the transition matrix"};
+  if (check_interfaces(2, pyobjects, names) < 0) {
+    return -1;
+  }
+  /* get the buffer view for each object */
+  int flags = PyBUF_ND | PyBUF_FORMAT | PyBUF_C_CONTIGUOUS | PyBUF_WRITABLE;
+  if (PyObject_GetBuffer(distn, &p->distn, flags) < 0) {
+    return -1;
+  } else {
+    p->has_distn = 1;
+  }
+  if (PyObject_GetBuffer(trans, &p->trans, flags) < 0) {
+    return -1;
+  } else {
+    p->has_trans = 1;
+  }
+  /* init the TM using the buffer views */
+  if (TM_init_from_buffers(&p->tm, &p->distn, &p->trans) < 0) {
+    return -1;
+  }
+  return 0;
 }
 
 int HMBUFA_destroy(struct HMBUFA *p)
 {
   if (p->has_distn) {
     PyBuffer_Release(&p->distn);
-    p->has_distn = 0;
   }
   if (p->has_trans) {
     PyBuffer_Release(&p->trans);
-    p->has_trans = 0;
   }
+  return 0;
+}
+
+int HMBUFA_clear(struct HMBUFA *p)
+{
   p->tm.nstates = 0;
   p->tm.distn = 0;
   p->tm.trans = 0;
-  return 0;
+  p->has_distn = 0;
+  p->has_trans = 0;
 }
 
 int HMBUFB_init(struct HMBUFB *p, PyObject *distn, PyObject *trans,
     PyObject *like, PyObject *post)
 {
+  HMBUFB_clear(p);
+  /* check the interfaces */
+  PyObject *pyobjects[] = {distn, trans, like, post};
+  char *names[] = {
+    "the distribution vector", "the transition matrix",
+    "the likelihoods matrix", "the posterior matrix"};
+  if (check_interfaces(4, pyobjects, names) < 0) {
+    return -1;
+  }
+  /* initialize the distribution and transition data */
   if (HMBUFA_init(&p->hmbufa) < 0) {
     return -1;
   }
+  int nstates = p->hmbufa.tm.nstates;
+  /* get the buffer view for the likelihood and posterior objects */
+  int flags = PyBUF_ND | PyBUF_FORMAT | PyBUF_C_CONTIGUOUS | PyBUF_WRITABLE;
+  if (PyObject_GetBuffer(like, &p->like, flags) < 0) {
+    return -1;
+  } else {
+    p->has_like = 1;
+  }
+  if (PyObject_GetBuffer(post, &p->post, flags) < 0) {
+    return -1;
+  } else {
+    p->has_post = 1;
+  }
+  /* check dimensionality */
+  if (p->like.ndim != 2) {
+    PyErr_SetString(HmmusbufError, "the likelihoods buffer should be 2D");
+    return -1;
+  }
+  if (p->post.ndim != 2) {
+    PyErr_SetString(HmmusbufError, "the posterior buffer should be 2D");
+    return -1;
+  }
+  /* the buffers should have compatible shapes */
+  if (p->like.shape[1] != nstates) {
+    PyErr_SetString(HmmusbufError,
+        "the likelihoods matrix should have the same number of states "
+        "as the distribution vector");
+    return -1;
+  }
+  int npositions = p->like.shape[0];
+  if (p->post.shape[1] != nstates) {
+    PyErr_SetString(HmmusbufError,
+        "the posterior matrix should have the same number of states "
+        "as the distribution vector");
+    return -1;
+  }
+  if (p->post.shape[0] != npositions) {
+    PyErr_SetString(HmmusbufError,
+        "the posterior matrix should have the same number of positions "
+        "as the likelihoods matrix");
+    return -1;
+  }
+  /* check data format for each buffer */
+  if (p->like.format[0] != 'd') {
+    PyErr_SetString(HmmusbufError,
+        "the likelihoods matrix has the wrong data type");
+    return -1;
+  }
+  if (p->post.format[0] != 'd') {
+    PyErr_SetString(HmmusbufError,
+        "the posterior matrix has the wrong data type");
+    return -1;
+  }
+  /* buffers should be non-null */
+  if (p->like.buf == NULL) {
+    PyErr_SetString(HmmusbufError,
+        "the likelihoods vector data buffer is NULL");
+    return -1;
+  }
+  if (p->post.buf == NULL) {
+    PyErr_SetString(HmmusbufError,
+        "the posterior matrix data buffer is NULL");
+    return -1;
+  }
+  return 0;
 }
 
 int HMBUFB_destroy(struct HMBUFB *p)
 {
   if (p->has_like) {
     PyBuffer_Release(&p->like);
-    p->has_like = 0;
   }
   if (p->has_post) {
     PyBuffer_Release(&p->post);
-    p->has_post = 0;
   }
   return HMBUFA_destroy(&p->hmbufa);
 }
 
-
-/* On error, set an appropriate exception and return -1.
- */
-int check_interface(PyObject *obj_distn, PyObject *obj_trans,
-    PyObject *obj_like, PyObject *obj_post)
+int HMBUFB_clear(struct HMBUFB *p)
 {
-  int distn_fail = !PyObject_CheckBuffer(obj_distn);
-  int trans_fail = !PyObject_CheckBuffer(obj_distn);
-  int like_fail = !PyObject_CheckBuffer(obj_distn);
-  int post_fail = !PyObject_CheckBuffer(obj_distn);
-  int all_fail = distn_fail && trans_fail && like_fail && post_fail;
-  if (all_fail) {
-    PyErr_SetString(HmmusbufError,
-        "these objects should support the buffer interface");
-    return -1;
-  }
-  if (distn_fail) {
-    PyErr_SetString(HmmusbufError,
-        "the distribution object should support the buffer interface");
-    return -1;
-  }
-  if (trans_fail) {
-    PyErr_SetString(HmmusbufError,
-        "the transition matrix object should support the buffer interface");
-    return -1;
-  }
-  if (like_fail) {
-    PyErr_SetString(HmmusbufError,
-        "the likelihoods object should support the buffer interface");
-    return -1;
-  }
-  if (post_fail) {
-    PyErr_SetString(HmmusbufError,
-        "the posterior object should support the buffer interface");
-    return -1;
-  }
+  p->has_like = 0;
+  p->has_post = 0;
+  HMBUFA_clear(&p->hmbufa);
   return 0;
 }
 
-/* Try to use the buffer interface.
- * Python args are:
- * distribution_in
- * transitions_in
- * likelihoods_in
- * posterior_out
- */
+
 static PyObject *
-newbuf_fwdbwd_nodisk_python(PyObject *self, PyObject *args)
+forward_python(PyObject *self, PyObject *args)
 {
   int except = 0;
-  /* buffer views */
-  Py_buffer distn_view;
-  Py_buffer trans_view;
-  Py_buffer like_view;
-  Py_buffer post_view;
-  int got_distn_view = 0;
-  int got_trans_view = 0;
-  int got_like_view = 0;
-  int got_post_view = 0;
+  /* init an object */
+  HMBUFA hmbufa;
+  HMBUFA_clear(&hmbufa);
   /* read the args */
-  PyObject *obj_distn;
-  PyObject *obj_trans;
-  PyObject *obj_like;
-  PyObject *obj_post;
-  if (!PyArg_ParseTuple(args, "OOOO",
-        &obj_distn, &obj_trans, &obj_like, &obj_post)) {
+  PyObject *distn;
+  PyObject *trans;
+  const char *likelihoods_name;
+  const char *forward_name;
+  const char *scaling_name;
+  if (!PyArg_ParseTuple(args, "OOsss",
+      &distn, &trans,
+      &likelihoods_name, &forward_name, &scaling_name)) {
     except = 1; goto end;
   }
-  /* all objects should support the buffer interface */
-  if (check_interface(obj_distn, obj_trans, obj_like, obj_post) < 0) {
+  /* do extensive error checking */
+  if (HMBUFA_init(&hmbufa, distn, trans) < 0) {
     except = 1; goto end;
   }
-  /* get the buffer view for each object */
-  int flags = PyBUF_ND | PyBUF_FORMAT | PyBUF_C_CONTIGUOUS | PyBUF_WRITABLE;
-  if (PyObject_GetBuffer(obj_distn, &distn_view, flags) < 0) {
-    except = 1; goto end;
-  } else {
-    got_distn_view = 1;
-  }
-  if (PyObject_GetBuffer(obj_trans, &trans_view, flags) < 0) {
-    except = 1; goto end;
-  } else {
-    got_trans_view = 1;
-  }
-  if (PyObject_GetBuffer(obj_like, &like_view, flags) < 0) {
-    except = 1; goto end;
-  } else {
-    got_like_view = 1;
-  }
-  if (PyObject_GetBuffer(obj_post, &post_view, flags) < 0) {
-    except = 1; goto end;
-  } else {
-    got_post_view = 1;
-  }
-  /* initialize a TM struct */
-  struct TM tm;
-  if (TM_init_from_buffers(&tm, &distn_view, &trans_view) < 0) {
-    except = 1; goto end;
-  }
-  /* check dimensionality */
-  if (like_view.ndim != 2) {
-    PyErr_SetString(HmmusbufError, "the likelihoods buffer should be 2D");
-    except = 1; goto end;
-  }
-  if (post_view.ndim != 2) {
-    PyErr_SetString(HmmusbufError, "the posterior buffer should be 2D");
-    except = 1; goto end;
-  }
-  /* the buffers should have compatible shapes */
-  if (like_view.shape[1] != tm.nstates) {
-    PyErr_SetString(HmmusbufError,
-        "the likelihoods matrix should have the same number of states "
-        "as the distribution vector");
-    except = 1; goto end;
-  }
-  int npositions = like_view.shape[0];
-  if (post_view.shape[1] != nstates) {
-    PyErr_SetString(HmmusbufError,
-        "the posterior matrix should have the same number of states "
-        "as the distribution vector");
-    except = 1; goto end;
-  }
-  if (post_view.shape[0] != npositions) {
-    PyErr_SetString(HmmusbufError,
-        "the posterior matrix should have the same number of positions "
-        "as the likelihoods matrix");
-    except = 1; goto end;
-  }
-  /* check data format for each buffer */
-  if (like_view.format[0] != 'd') {
-    PyErr_SetString(HmmusbufError,
-        "the likelihoods matrix has the wrong data type");
-    return -1;
-  }
-  if (post_view.format[0] != 'd') {
-    PyErr_SetString(HmmusbufError,
-        "the posterior matrix has the wrong data type");
-    return -1;
-  }
-  /* buffers should be non-null */
-  if (like_view.buf == NULL) {
-    PyErr_SetString(HmmusbufError,
-        "the likelihoods vector data buffer is NULL");
-    return -1;
-  }
-  if (post_view.buf == NULL) {
-    PyErr_SetString(HmmusbufError,
-        "the posterior matrix data buffer is NULL");
-    return -1;
-  }
-  /* fill the posterior matrix */
-  if (fwdbwd_nodisk(&tm, like_view.shape[0],
-      (double *) like_view.buf, (double *) post_view.buf) < 0) {
-    PyErr_SetString(HmmusbufError,
-        "failed to run the forward-backward algorithm");
+  /* run the hmm algorithm */
+  if (do_forward(&hmbufa.tm, likelihoods_name, forward_name, scaling_name))
+  {
+    PyErr_SetString(HmmusbufError, "forward algorithm error");
     except = 1; goto end;
   }
 end:
-  /* clean up the buffer views */
-  if (got_distn_view) {
-    PyBuffer_Release(&distn_view);
-  }
-  if (got_trans_view) {
-    PyBuffer_Release(&trans_view);
-  }
-  if (got_like_view) {
-    PyBuffer_Release(&like_view);
-  }
-  if (got_post_view) {
-    PyBuffer_Release(&post_view);
-  }
-  /* return an appropriate value */
+  HMBUFA_destroy(&hmbufa);
   if (except) {
     return NULL;
   } else {
@@ -312,119 +309,171 @@ end:
 }
 
 static PyObject *
-forward_python(PyObject *self, PyObject *args)
-{
-  PyObject *vtuple;
-  PyObject *mtuple;
-  const char *likelihoods_name;
-  const char *forward_name;
-  const char *scaling_name;
-  /* read the args */
-  int ok = PyArg_ParseTuple(args, "OOsss",
-      &vtuple, &mtuple,
-      &likelihoods_name, &forward_name, &scaling_name);
-  if (!ok) return NULL;
-  /* run the hmm algorithm */
-  struct TM tm;
-  if (TM_init_from_pytuples(&tm, vtuple, mtuple) < 0) return NULL;
-  if (do_forward(&tm, likelihoods_name, forward_name, scaling_name))
-  {
-    PyErr_SetString(HmmusbufError, "forward algorithm error");
-    TM_del(&tm);
-    return NULL;
-  }
-  TM_del(&tm);
-  return Py_BuildValue("i", 0);
-}
-
-static PyObject *
 backward_python(PyObject *self, PyObject *args)
 {
-  PyObject *vtuple;
-  PyObject *mtuple;
+  int except = 0;
+  /* init an object */
+  HMBUFA hmbufa;
+  HMBUFA_clear(&hmbufa);
+  /* read the args */
+  PyObject *distn;
+  PyObject *trans;
   const char *likelihoods_name;
   const char *scaling_name;
   const char *backward_name;
-  /* read the args */
-  int ok = PyArg_ParseTuple(args, "OOsss",
+  if (!PyArg_ParseTuple(args, "OOsss",
       &vtuple, &mtuple,
-      &likelihoods_name, &scaling_name, &backward_name);
-  if (!ok) return NULL;
+      &likelihoods_name, &scaling_name, &backward_name)) {
+    except = 1; goto end;
+  }
+  /* do extensive error checking */
+  if (HMBUFA_init(&hmbufa, distn, trans) < 0) {
+    except = 1; goto end;
+  }
   /* run the hmm algorithm */
-  struct TM tm;
-  if (TM_init_from_pytuples(&tm, vtuple, mtuple) < 0) return NULL;
   if (do_backward(&tm, likelihoods_name, scaling_name, backward_name))
   {
     PyErr_SetString(HmmusbufError, "backward algorithm error");
-    TM_del(&tm);
-    return NULL;
+    except = 1; goto end;
   }
-  TM_del(&tm);
-  return Py_BuildValue("i", 0);
+end:
+  HMBUFA_destroy(&hmbufa);
+  if (except) {
+    return NULL;
+  } else {
+    return Py_BuildValue("i", 42);
+  }
 }
 
 static PyObject *
 posterior_python(PyObject *self, PyObject *args)
 {
-  PyObject *vtuple;
-  PyObject *mtuple;
+  int except = 0;
+  /* init an object */
+  HMBUFA hmbufa;
+  HMBUFA_clear(&hmbufa);
+  /* read the args */
+  PyObject *distn;
+  PyObject *trans;
   const char *f_name;
   const char *s_name;
   const char *b_name;
   const char *p_name;
-  /* read the args */
-  int ok = PyArg_ParseTuple(args, "OOssss",
-      &vtuple, &mtuple,
-      &f_name, &s_name, &b_name, &p_name);
-  if (!ok) return NULL;
+  if (!PyArg_ParseTuple(args, "OOssss",
+      &distn, &trans,
+      &f_name, &s_name, &b_name, &p_name)) {
+    except = 1; goto end;
+  }
+  /* do extensive error checking */
+  if (HMBUFA_init(&hmbufa, distn, trans) < 0) {
+    except = 1; goto end;
+  }
   /* run the hmm algorithm */
-  struct TM tm;
-  if (TM_init_from_pytuples(&tm, vtuple, mtuple) < 0) return NULL;
-  if (do_posterior(tm.nstates, f_name, s_name, b_name, p_name))
+  if (do_posterior(hmbufa.tm.nstates, f_name, s_name, b_name, p_name))
   {
     PyErr_SetString(HmmusbufError, "posterior algorithm error");
-    TM_del(&tm);
-    return NULL;
+    except = 1; goto end;
   }
-  TM_del(&tm);
-  return Py_BuildValue("i", 0);
+end:
+  HMBUFA_destroy(&hmbufa);
+  if (except) {
+    return NULL;
+  } else {
+    return Py_BuildValue("i", 42);
+  }
 }
 
 static PyObject *
 fwdbwd_somedisk_python(PyObject *self, PyObject *args)
 {
-  PyObject *vtuple;
-  PyObject *mtuple;
+  int except = 0;
+  /* init an object */
+  HMBUFA hmbufa;
+  HMBUFA_clear(&hmbufa);
+  /* read the args */
+  PyObject *distn;
+  PyObject *trans;
   const char *l_name;
   const char *d_name;
-  /* read the args */
-  int ok = PyArg_ParseTuple(args, "OOss",
-      &vtuple, &mtuple,
-      &l_name, &d_name);
-  if (!ok) return NULL;
+  if (!PyArg_ParseTuple(args, "OOss",
+      &distn, &trans,
+      &l_name, &d_name)) {
+    except = 1; goto end;
+  }
+  /* do extensive error checking */
+  if (HMBUFA_init(&hmbufa, distn, trans) < 0) {
+    except = 1; goto end;
+  }
   /* run the hmm algorithm */
-  struct TM tm;
-  if (TM_init_from_pytuples(&tm, vtuple, mtuple) < 0) return NULL;
   if (do_fwdbwd_somedisk(&tm, l_name, d_name))
   {
     PyErr_SetString(HmmusbufError, "fwdbwd_somedisk algorithm error");
-    TM_del(&tm);
-    return NULL;
+    except = 1; goto end;
   }
-  TM_del(&tm);
-  return Py_BuildValue("i", 0);
+end:
+  HMBUFA_destroy(&hmbufa);
+  if (except) {
+    return NULL;
+  } else {
+    return Py_BuildValue("i", 42);
+  }
 }
 
-static PyMethodDef HmmuscMethods[] = {
+/* Try to use the buffer interface.
+ * Python args are the numpy arrays:
+ * distribution_in
+ * transitions_in
+ * likelihoods_in
+ * posterior_out
+ */
+static PyObject *
+fwdbwd_nodisk_python(PyObject *self, PyObject *args)
+{
+  int except = 0;
+  /* init an object */
+  HMBUFB hmbufb;
+  HMBUFB_clear(&hmbufb);
+  /* read the args */
+  PyObject *distn, *trans, *like, *post;
+  if (!PyArg_ParseTuple(args, "OOOO", &distn, &trans, &like, &post)) {
+    except = 1; goto end;
+  }
+  /* do extensive error checking */
+  if (HMBUFB_init(&hmbufb, distn, trans, like, post) < 0) {
+    except = 1; goto end;
+  }
+  /* fill the posterior matrix */
+  if (fwdbwd_nodisk(&hmbufb.hmbufa.tm, hmbufb.like.shape[0],
+      (double *) hmbufb.like.buf, (double *) hmbufb.post.buf) < 0) {
+    PyErr_SetString(HmmusbufError,
+        "failed to run the forward-backward algorithm");
+    except = 1; goto end;
+  }
+end:
+  HMBUFB_destroy(&hmbufb);
+  /* return an appropriate value */
+  if (except) {
+    return NULL;
+  } else {
+    return Py_BuildValue("i", 42);
+  }
+}
+
+
+static PyMethodDef HmmusbufMethods[] = {
   {"forward", forward_python, METH_VARARGS,
-    "Forward algorithm."},
+    "Forward algorithm "
+    "using the new-style buffer interface."},
   {"backward", backward_python, METH_VARARGS,
-    "Backward algorithm."},
+    "Backward algorithm "
+    "using the new-style buffer interface."},
   {"posterior", posterior_python, METH_VARARGS,
-    "Posterior decoding."},
+    "Posterior decoding"
+    "using the new-style buffer interface."},
   {"fwdbwd_somedisk", fwdbwd_somedisk_python, METH_VARARGS,
-    "Forward-backward algorithm with intermediate arrays in RAM."},
-  {"newbuf_fwdbwd_nodisk", newbuf_fwdbwd_nodisk_python, METH_VARARGS,
+    "Forward-backward algorithm with intermediate arrays in RAM, "
+    "using the new-style buffer interface."},
+  {"fwdbwd_nodisk", fwdbwd_nodisk_python, METH_VARARGS,
     "Forward-backward algorithm with all arrays in RAM, "
     "using the new-style buffer interface."},
   {NULL, NULL, 0, NULL}
@@ -435,7 +484,7 @@ inithmmusbuf(void)
 {
   PyObject *m = Py_InitModule("hmmusbuf", HmmusbufMethods);
   if (!m) return;
-
+  /* init the error object */
   HmmusbufError = PyErr_NewException("hmmusbuf.error", NULL, NULL);
   Py_INCREF(HmmusbufError);
   PyModule_AddObject(m, "error", HmmusbufError);
