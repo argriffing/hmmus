@@ -44,12 +44,12 @@ int TM_init_from_buffers(struct TM *ptm, Py_buffer *distn, Py_buffer *trans)
   /* the distribution vector should be one dimensional */
   if (distn->ndim != 1) {
     PyErr_SetString(HmmusbufError, "the distribution vector should be 1D");
-    except = 1; goto end;
+    return -1;
   }
   /* the transition matrix should be two dimensional */
   if (trans->ndim != 2) {
     PyErr_SetString(HmmusbufError, "the transition matrix should be 2D");
-    except = 1; goto end;
+    return -1;
   }
   /* the transition matrix should be square */
   if (trans->shape[0] != trans->shape[1]) {
@@ -103,7 +103,7 @@ int check_interfaces(int n, PyObject **pobjects, char **names) {
 /* Collect new-style buffer stuff here.
  */
 struct HMBUFA {
-  TM tm;
+  struct TM tm;
   Py_buffer distn;
   Py_buffer trans;
   int has_distn;
@@ -119,6 +119,16 @@ struct HMBUFB {
   int has_post;
   struct HMBUFA hmbufa;
 };
+
+int HMBUFA_clear(struct HMBUFA *p)
+{
+  p->tm.nstates = 0;
+  p->tm.distn = 0;
+  p->tm.trans = 0;
+  p->has_distn = 0;
+  p->has_trans = 0;
+  return 0;
+}
 
 int HMBUFA_init(struct HMBUFA *p, PyObject *distn, PyObject *trans)
 {
@@ -159,13 +169,12 @@ int HMBUFA_destroy(struct HMBUFA *p)
   return 0;
 }
 
-int HMBUFA_clear(struct HMBUFA *p)
+int HMBUFB_clear(struct HMBUFB *p)
 {
-  p->tm.nstates = 0;
-  p->tm.distn = 0;
-  p->tm.trans = 0;
-  p->has_distn = 0;
-  p->has_trans = 0;
+  p->has_like = 0;
+  p->has_post = 0;
+  HMBUFA_clear(&p->hmbufa);
+  return 0;
 }
 
 int HMBUFB_init(struct HMBUFB *p, PyObject *distn, PyObject *trans,
@@ -181,7 +190,7 @@ int HMBUFB_init(struct HMBUFB *p, PyObject *distn, PyObject *trans,
     return -1;
   }
   /* initialize the distribution and transition data */
-  if (HMBUFA_init(&p->hmbufa) < 0) {
+  if (HMBUFA_init(&p->hmbufa, distn, trans) < 0) {
     return -1;
   }
   int nstates = p->hmbufa.tm.nstates;
@@ -262,21 +271,13 @@ int HMBUFB_destroy(struct HMBUFB *p)
   return HMBUFA_destroy(&p->hmbufa);
 }
 
-int HMBUFB_clear(struct HMBUFB *p)
-{
-  p->has_like = 0;
-  p->has_post = 0;
-  HMBUFA_clear(&p->hmbufa);
-  return 0;
-}
-
 
 static PyObject *
 forward_python(PyObject *self, PyObject *args)
 {
   int except = 0;
   /* init an object */
-  HMBUFA hmbufa;
+  struct HMBUFA hmbufa;
   HMBUFA_clear(&hmbufa);
   /* read the args */
   PyObject *distn;
@@ -313,7 +314,7 @@ backward_python(PyObject *self, PyObject *args)
 {
   int except = 0;
   /* init an object */
-  HMBUFA hmbufa;
+  struct HMBUFA hmbufa;
   HMBUFA_clear(&hmbufa);
   /* read the args */
   PyObject *distn;
@@ -322,7 +323,7 @@ backward_python(PyObject *self, PyObject *args)
   const char *scaling_name;
   const char *backward_name;
   if (!PyArg_ParseTuple(args, "OOsss",
-      &vtuple, &mtuple,
+      &distn, &trans,
       &likelihoods_name, &scaling_name, &backward_name)) {
     except = 1; goto end;
   }
@@ -331,7 +332,7 @@ backward_python(PyObject *self, PyObject *args)
     except = 1; goto end;
   }
   /* run the hmm algorithm */
-  if (do_backward(&tm, likelihoods_name, scaling_name, backward_name))
+  if (do_backward(&hmbufa.tm, likelihoods_name, scaling_name, backward_name))
   {
     PyErr_SetString(HmmusbufError, "backward algorithm error");
     except = 1; goto end;
@@ -350,7 +351,7 @@ posterior_python(PyObject *self, PyObject *args)
 {
   int except = 0;
   /* init an object */
-  HMBUFA hmbufa;
+  struct HMBUFA hmbufa;
   HMBUFA_clear(&hmbufa);
   /* read the args */
   PyObject *distn;
@@ -388,7 +389,7 @@ fwdbwd_somedisk_python(PyObject *self, PyObject *args)
 {
   int except = 0;
   /* init an object */
-  HMBUFA hmbufa;
+  struct HMBUFA hmbufa;
   HMBUFA_clear(&hmbufa);
   /* read the args */
   PyObject *distn;
@@ -405,7 +406,7 @@ fwdbwd_somedisk_python(PyObject *self, PyObject *args)
     except = 1; goto end;
   }
   /* run the hmm algorithm */
-  if (do_fwdbwd_somedisk(&tm, l_name, d_name))
+  if (do_fwdbwd_somedisk(&hmbufa.tm, l_name, d_name))
   {
     PyErr_SetString(HmmusbufError, "fwdbwd_somedisk algorithm error");
     except = 1; goto end;
@@ -431,7 +432,7 @@ fwdbwd_nodisk_python(PyObject *self, PyObject *args)
 {
   int except = 0;
   /* init an object */
-  HMBUFB hmbufb;
+  struct HMBUFB hmbufb;
   HMBUFB_clear(&hmbufb);
   /* read the args */
   PyObject *distn, *trans, *like, *post;
