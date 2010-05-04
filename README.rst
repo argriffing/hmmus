@@ -43,8 +43,10 @@ Major dependencies:
 
 Python package and module dependencies:
 
-* numpy_
-* argparse_
+* numpy_ (version 2.0+ to support the new-style buffer interface;
+  if this has not been released yet,
+  then use a development version from the subversion repository)
+* argparse_ (included in Python-2.7+ and in Python-3.2+)
 
 
 Installation
@@ -79,6 +81,7 @@ The following packages and modules should be installed:
 
 * The ``numpy`` package should be installed
   by ``sudo apt-get install python-numpy`` on Debian and Ubuntu.
+  Or to get a newer version, install from subversion.
 * The ``argparse`` module can be installed
   by ``pip install argparse`` in the activated virtual environment.
 
