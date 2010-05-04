@@ -34,10 +34,6 @@ scripts = [
         'bin/hmm-fwdbwd-somedisk',
         'bin/hmm-fwdbwd-alldisk']
 
-hmmusc = Extension(
-        name='hmmusc',
-        sources=['hmmuscmodule.c', 'hmmguts/hmmguts.c'])
-
 hmmusbuf = Extension(
         name='hmmusbuf',
         sources=['hmmusbufmodule.c', 'hmmguts/hmmguts.c'])
@@ -79,6 +75,6 @@ setup(
         classifiers = classifiers,
         platforms = ['Linux'],
         license = 'MIT',
-        ext_modules = [hmmusc, hmmusbuf],
+        ext_modules = [hmmusbuf],
         packages = ['hmmus'],
         scripts = scripts)
