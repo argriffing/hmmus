@@ -6,7 +6,7 @@ import itertools
 
 import numpy as np
 
-import hmmusc
+import hmmusbuf
 
 def is_stochastic_vector(v):
     if len(v.shape) != 1:
@@ -31,10 +31,12 @@ def is_right_stochastic_matrix(M):
         return False
     return True
 
-def _simplify(distribution, transitions):
+def _reformat(distribution, transitions):
     """
-    @param distribution: initial state distribution
-    @param transitions: transition probabilities
+    Reformat the input as dtype float numpy arrays.
+    Also check for errors.
+    @param distribution: initial state distribution numpy array
+    @param transitions: transition matrix as numpy array
     """
     # get the initial state distribution as a numpy array
     np_distn = np.array(distribution, dtype=float)
@@ -52,10 +54,7 @@ def _simplify(distribution, transitions):
         msg_a = 'the number of states in the initial distribution does not '
         msg_b = 'match the number of states in the transition matrix'
         raise ValueError(msg_a + msg_b)
-    # dumb down the numpy arrays into tuples of floats
-    tuple_distn = tuple(np_distn.tolist())
-    tuple_trans = tuple(itertools.chain.from_iterable(np_trans))
-    return tuple_distn, tuple_trans
+    return np_distn, np_trans
 
 def forward(distribution, transitions,
         likelihoods_name, forward_name, scaling_name):
@@ -63,8 +62,8 @@ def forward(distribution, transitions,
     @param distribution: initial state distribution
     @param transitions: transition probabilities
     """
-    tuple_distn, tuple_trans = _simplify(distribution, transitions)
-    return hmmusc.forward(tuple_distn, tuple_trans,
+    np_distn, np_trans = _reformat(distribution, transitions)
+    return hmmusbuf.forward(np_distn, np_trans,
         likelihoods_name, forward_name, scaling_name)
 
 def backward(distribution, transitions,
@@ -73,8 +72,8 @@ def backward(distribution, transitions,
     @param distribution: initial state distribution
     @param transitions: transition probabilities
     """
-    tuple_distn, tuple_trans = _simplify(distribution, transitions)
-    return hmmusc.backward(tuple_distn, tuple_trans,
+    np_distn, np_trans = _reformat(distribution, transitions)
+    return hmmusbuf.backward(np_distn, np_trans,
         likelihoods_name, scaling_name, backward_name)
 
 def posterior(distribution, transitions,
@@ -83,8 +82,8 @@ def posterior(distribution, transitions,
     @param distribution: initial state distribution
     @param transitions: transition probabilities
     """
-    tuple_distn, tuple_trans = _simplify(distribution, transitions)
-    return hmmusc.posterior(tuple_distn, tuple_trans,
+    np_distn, np_trans = _reformat(distribution, transitions)
+    return hmmusbuf.posterior(np_distn, np_trans,
         forward_name, scaling_name, backward_name, posterior_name)
 
 def fwdbwd_alldisk(distribution, transitions,
@@ -108,29 +107,21 @@ def fwdbwd_somedisk(distribution, transitions,
     @param distribution: initial state distribution
     @param transitions: transition probabilities
     """
-    tuple_distn, tuple_trans = _simplify(distribution, transitions)
-    return hmmusc.fwdbwd_somedisk(tuple_distn, tuple_trans,
+    np_distn, np_trans = _reformat(distribution, transitions)
+    return hmmusbuf.fwdbwd_somedisk(np_distn, np_trans,
         likelihoods_name, posterior_name)
 
-def fwdbwd_nodisk(distribution, transitions, likelihoods):
+def fwdbwd_nodisk(distribution, transitions, np_likelihoods):
     """
     @param distribution: initial state distribution
     @param transitions: transition probabilities
     @param likelihoods: likelihoods at each state
     @return: posterior distribution at each state
     """
-    tuple_distn, tuple_trans = _simplify(distribution, transitions)
-    np_likelihoods = np.array(likelihoods, float)
+    np_distn, np_trans = _reformat(distribution, transitions)
     if len(np_likelihoods.shape) != 2:
         msg = 'the matrix of likelihoods should be rectangular'
         raise ValueError(msg)
-    nlikelihoods_rows, nlikelihoods_cols = np_likelihoods.shape
-    if nlikelihoods_cols != len(distribution):
-        msg = 'likelihood columns should conform to the distribution'
-        raise ValueError(msg)
-    tuple_likelihoods = tuple(itertools.chain.from_iterable(np_likelihoods))
-    tuple_posterior = hmmusc.fwdbwd_nodisk(tuple_distn, tuple_trans,
-            tuple_likelihoods)
-    np_posterior_unshaped = np.array(tuple_posterior, dtype=float)
-    np_posterior = np_posterior_unshaped.reshape(np_likelihoods.shape)
+    np_posterior = np.zeros_like(np_likelihoods)
+    hmmusbuf.fwdbwd_nodisk(np_distn, np_trans, np_likelihoods, np_posterior)
     return np_posterior

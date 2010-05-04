@@ -12,7 +12,6 @@ import numpy as np
 
 from hmmus import demo
 from hmmus import hmm
-import hmmusc
 
 class TempFileManager:
     def __init__(self):
@@ -141,24 +140,6 @@ class TestHmm(unittest.TestCase):
         self.assertTrue(np.allclose(ex_post, ob_post),
                 'posterior array mismatch')
 
-    def help_test_newbuf_fwdbwd_nodisk(self, d):
-        """
-        @param d: a demo instance
-        """
-        # compute the posterior
-        ob_distn = d.get_distribution()
-        ob_trans = d.get_transitions()
-        ob_like = d.get_likelihoods()
-        ob_post = np.zeros(ob_like.shape)
-        hmmusc.newbuf_fwdbwd_nodisk(ob_distn, ob_trans, ob_like, ob_post)
-        # get the expected posterior
-        ex_post = d.get_expected_posterior()
-        # compare the computed posterior to the expected posterior
-        msg_lines = ['posterior array mismatch',
-                'expected', str(ex_post), 'but got', str(ob_post)]
-        self.assertTrue(np.allclose(ex_post, ob_post),
-                '\n'.join(msg_lines))
-
 
     def test_smith_alldisk(self):
         self.help_test_fwdbwd_alldisk(demo.SmithDemo())
@@ -169,9 +150,6 @@ class TestHmm(unittest.TestCase):
     def test_smith_nodisk(self):
         self.help_test_fwdbwd_nodisk(demo.SmithDemo())
 
-    def test_smith_newbuf_nodisk(self):
-        self.help_test_newbuf_fwdbwd_nodisk(demo.SmithDemo())
-
 
     def test_eddy_alldisk(self):
         self.help_test_fwdbwd_alldisk(demo.EddyDemo())
@@ -181,9 +159,6 @@ class TestHmm(unittest.TestCase):
 
     def test_eddy_nodisk(self):
         self.help_test_fwdbwd_nodisk(demo.EddyDemo())
-
-    def test_eddy_newbuf_nodisk(self):
-        self.help_test_newbuf_fwdbwd_nodisk(demo.EddyDemo())
 
 
 if __name__ == '__main__':
