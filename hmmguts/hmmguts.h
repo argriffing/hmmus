@@ -54,9 +54,10 @@ int backward_alldisk(const struct TM *ptm,
 int posterior_alldisk(int nstates,
     FILE *fi_f, FILE *fi_s, FILE *fi_b, FILE *fo_d);
 
-int state_expectations_alldisk(int nstates, double *expectations, FILE *fi_d);
+int state_expectations_alldisk(int nstates,
+    double *expectations, FILE *fi_d);
 
-int transition_expectations_alldisk(const struct TM *ptm,
+int transition_expectations_alldisk(int nstates, const double *trans,
     double *expectations, FILE *fi_l, FILE *fi_f, FILE *fi_b);
 
 
@@ -103,7 +104,8 @@ int do_posterior(int nstates,
 int do_state_expectations(int nstates,
     double *expectations, const char *posterior_name);
 
-int do_transition_expectations(const struct TM *ptm, double *expectations,
+int do_transition_expectations(int nstates, const double *trans,
+    double *expectations,
     const char *likelihoods_name, const char *forward_name,
     const char *backward_name);
 

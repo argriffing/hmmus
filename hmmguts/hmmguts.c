@@ -367,14 +367,13 @@ int state_expectations_alldisk(int nstates, double *expectations, FILE *fi_d)
   return 0;
 }
 
-int transition_expectations_alldisk(const struct TM *ptm,
+int transition_expectations_alldisk(int nstates, const double *trans,
     double *expectations, FILE *fi_l, FILE *fi_f, FILE *fi_b)
 {
   /*
    * Implementation is from my tested ExternalHMM python code.
    */
   int i;
-  int nstates = ptm->nstates;
   size_t nbytes;
   int result;
   /* seek to near the end of the backward file */
@@ -411,7 +410,7 @@ int transition_expectations_alldisk(const struct TM *ptm,
         for (sink=0; sink<nstates; ++sink)
         {
           index = source * nstates + sink;
-          tprob = ptm->trans[index];
+          tprob = trans[index];
           x = f_old[source] * tprob * l_new[sink] * b_new[sink];
           expectations[index] = kahan_accum(
               expectations[index], compensations+index, x);
@@ -866,7 +865,8 @@ end:
   fsafeclose(fin_d);
 }
 
-int do_transition_expectations(const struct TM *ptm, double *expectations,
+int do_transition_expectations(int nstates, const double *trans,
+    double *expectations,
     const char *likelihoods_name, const char *forward_name,
     const char *backward_name)
 {
@@ -889,7 +889,8 @@ int do_transition_expectations(const struct TM *ptm, double *expectations,
     fprintf(stderr, "failed to open the backward vector file for reading\n");
     errcode = -1; goto end;
   }
-  transition_expectations_alldisk(ptm, expectations, fin_l, fin_f, fin_b);
+  transition_expectations_alldisk(
+      nstates, trans, expectations, fin_l, fin_f, fin_b);
 end:
   fsafeclose(fin_l);
   fsafeclose(fin_f);

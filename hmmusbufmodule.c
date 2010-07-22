@@ -469,7 +469,13 @@ static PyMethodDef HmmusbufMethods[] = {
     "Backward algorithm "
     "using the new-style buffer interface."},
   {"posterior", posterior_python, METH_VARARGS,
-    "Posterior decoding"
+    "Posterior decoding "
+    "using the new-style buffer interface."},
+  {"state_expectations", state_expectations_python, METH_VARARGS,
+    "compute the expected amount of time spent in each state "
+    "using the new-style buffer interface."},
+  {"transition_expectations", transition_expectations_python, METH_VARARGS,
+    "compute the expected count of each transition "
     "using the new-style buffer interface."},
   {"fwdbwd_somedisk", fwdbwd_somedisk_python, METH_VARARGS,
     "Forward-backward algorithm with intermediate arrays in RAM, "
