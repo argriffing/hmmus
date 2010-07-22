@@ -1,6 +1,14 @@
 #ifndef HMMGUTS
 #define HMMGUTS
 
+/*
+ * l: likelihood
+ * f: forward
+ * s: scaling
+ * b: backward
+ * d: posterior
+ */
+
 struct TM
 {
   /*
@@ -13,6 +21,8 @@ struct TM
   double *distn;
   double *trans;
 };
+
+double kahan_accum(double accum, double *pcompensation, double x);
 
 double* get_doubles(int ndoubles, const char *filename);
 
@@ -43,6 +53,11 @@ int backward_alldisk(const struct TM *ptm,
 
 int posterior_alldisk(int nstates,
     FILE *fi_f, FILE *fi_s, FILE *fi_b, FILE *fo_d);
+
+int state_expectations_alldisk(int nstates, double *expectations, FILE *fi_d);
+
+int transition_expectations_alldisk(const struct TM *ptm,
+    double *expectations, FILE *fi_l, FILE *fi_f, FILE *fi_b);
 
 
 int forward_somedisk(const struct TM *ptm, FILE *fin_l,
@@ -84,6 +99,13 @@ int do_backward(const struct TM *ptm,
 int do_posterior(int nstates,
     const char *forward_name, const char *scaling_name,
     const char *backward_name, const char *posterior_name);
+
+int do_state_expectations(int nstates,
+    double *expectations, const char *posterior_name);
+
+int do_transition_expectations(const struct TM *ptm, double *expectations,
+    const char *likelihoods_name, const char *forward_name,
+    const char *backward_name);
 
 int do_fwdbwd_somedisk(const struct TM *ptm,
     const char *likelihoods_name, const char *posterior_name);

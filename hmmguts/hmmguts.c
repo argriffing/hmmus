@@ -6,6 +6,19 @@
 
 #include "hmmguts.h"
 
+double kahan_accum(double accum, double *pcompensation, double x)
+{
+  /*
+   * Return the new sum, and update the compensation.
+   * This function exists to deal with rounding errors.
+   * See Kahan summation.
+   */
+  double y = x - *pcompensation;
+  double t = accum + y;
+  *pcompensation = (t - accum) - y;
+  return t;
+}
+
 int fsafeclose(FILE *f)
 {
   if (f)
@@ -327,6 +340,98 @@ int posterior_alldisk(int nstates,
   free(arr_f);
   free(arr_b);
   return 0;
+}
+
+int state_expectations_alldisk(int nstates, double *expectations, FILE *fi_d)
+{
+  /*
+   * Compute the expected amount of time spent in each state.
+   */
+  int i;
+  double *compensations = malloc(nstates*sizeof(double));
+  double *probabilities = malloc(nstates*sizeof(double));
+  for (i=0; i<nstates; ++i)
+  {
+    compensations[i] = 0.0;
+  }
+  while (fread(probabilities, sizeof(double), nstates, fi_d))
+  {
+    for (i=0; i<3; i++)
+    {
+      expectations[i] = kahan_accum(
+          expectations[i], compensations+i, probabilities[i]);
+    }
+  }
+  free(compensations);
+  free(probabilities);
+  return 0;
+}
+
+int transition_expectations_alldisk(const struct TM *ptm,
+    double *expectations, FILE *fi_l, FILE *fi_f, FILE *fi_b)
+{
+  /*
+   * Implementation is from my tested ExternalHMM python code.
+   */
+  int i;
+  int nstates = ptm->nstates;
+  size_t nbytes;
+  int result;
+  /* seek to near the end of the backward file */
+  result = fseek(fi_b, -nstates*sizeof(double), SEEK_END);
+  if (result)
+  {
+    fprintf(stderr, "seek error\n");
+    return -1;
+  }
+  /* initialize compensations for kahan summation of transitions */
+  double *compensations = malloc(nstates*nstates*sizeof(double));
+  /* initialize some states */
+  double *l_old = malloc(nstates*sizeof(double));
+  double *f_old = malloc(nstates*sizeof(double));
+  double *b_old = malloc(nstates*sizeof(double));
+  double *l_new = malloc(nstates*sizeof(double));
+  double *f_new = malloc(nstates*sizeof(double));
+  double *b_new = malloc(nstates*sizeof(double));
+  double *tmp;
+  int source, sink;
+  int index;
+  double tprob;
+  double x;
+  int is_first = 1;
+  do
+  {
+    nbytes = fread(l_new, sizeof(double), nstates, fi_l);
+    nbytes = fread(f_new, sizeof(double), nstates, fi_f);
+    nbytes = fread(b_new, sizeof(double), nstates, fi_b);
+    if (!is_first)
+    {
+      for (source=0; source<nstates; ++source)
+      {
+        for (sink=0; sink<nstates; ++sink)
+        {
+          index = source * nstates + sink;
+          tprob = ptm->trans[index];
+          x = f_old[source] * tprob * l_new[sink] * b_new[sink];
+          expectations[index] = kahan_accum(
+              expectations[index], compensations+index, x);
+        }
+      }
+    }
+    tmp = l_old; l_old = l_new; l_new = tmp;
+    tmp = f_old; f_old = f_new; f_new = tmp;
+    tmp = b_old; b_old = b_new; b_new = tmp;
+    is_first = 0;
+    /* go back a bit */
+    result = fseek(fi_b, -2*nstates*sizeof(double), SEEK_CUR);
+  } while (!result);
+  free(l_old);
+  free(f_old);
+  free(b_old);
+  free(l_new);
+  free(f_new);
+  free(b_new);
+  free(compensations);
 }
 
 int forward_somedisk(const struct TM *ptm, FILE *fin_l,
@@ -743,5 +848,51 @@ end:
   fsafeclose(fin_s);
   fsafeclose(fin_b);
   fsafeclose(fout_d);
+  return errcode;
+}
+
+int do_state_expectations(int nstates,
+    double *expectations, const char *posterior_name)
+{
+  int errcode = 0;
+  FILE *fin_d = NULL;
+  if (!(fin_d = fopen(posterior_name, "rb")))
+  {
+    fprintf(stderr, "failed to open the posterior vector file for reading\n");
+    errcode = -1; goto end;
+  }
+  state_expectations_alldisk(nstates, expectations, fin_d);
+end:
+  fsafeclose(fin_d);
+}
+
+int do_transition_expectations(const struct TM *ptm, double *expectations,
+    const char *likelihoods_name, const char *forward_name,
+    const char *backward_name)
+{
+  int errcode = 0;
+  FILE *fin_l = NULL;
+  FILE *fin_f = NULL;
+  FILE *fin_b = NULL;
+  if (!(fin_l = fopen(likelihoods_name, "rb")))
+  {
+    fprintf(stderr, "failed to open the likelihoods vector file for reading\n");
+    errcode = -1; goto end;
+  }
+  if (!(fin_f = fopen(forward_name, "rb")))
+  {
+    fprintf(stderr, "failed to open the forward factor file for reading\n");
+    errcode = -1; goto end;
+  }
+  if (!(fin_b = fopen(backward_name, "rb")))
+  {
+    fprintf(stderr, "failed to open the backward vector file for reading\n");
+    errcode = -1; goto end;
+  }
+  transition_expectations_alldisk(ptm, expectations, fin_l, fin_f, fin_b);
+end:
+  fsafeclose(fin_l);
+  fsafeclose(fin_f);
+  fsafeclose(fin_b);
   return errcode;
 }
