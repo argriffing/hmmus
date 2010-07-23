@@ -82,7 +82,7 @@ int check_interfaces(int n, PyObject **pobjects, char **names) {
       ++nvalid;
     }
   }
-  if (!nvalid) {
+  if (n>1 && !nvalid) {
     PyErr_SetString(HmmusbufError,
         "these objects should support the buffer interface");
     return -1;
