@@ -373,7 +373,6 @@ int transition_expectations_alldisk(int nstates, const double *trans,
   /*
    * Implementation is from my tested ExternalHMM python code.
    */
-  int i;
   size_t nbytes;
   int result;
   /* seek to near the end of the backward file */
@@ -431,6 +430,7 @@ int transition_expectations_alldisk(int nstates, const double *trans,
   free(f_new);
   free(b_new);
   free(compensations);
+  return 0;
 }
 
 int forward_somedisk(const struct TM *ptm, FILE *fin_l,
@@ -863,6 +863,7 @@ int do_state_expectations(int nstates,
   state_expectations_alldisk(nstates, expectations, fin_d);
 end:
   fsafeclose(fin_d);
+  return errcode;
 }
 
 int do_transition_expectations(int nstates, const double *trans,

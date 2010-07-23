@@ -385,6 +385,152 @@ end:
 }
 
 static PyObject *
+state_expectations_python(PyObject *self, PyObject *args)
+{
+  int except = 0;
+  /* init buffer info */
+  int got_expectations_buffer = 0;
+  Py_buffer expectations_buffer;
+  /* read the args */
+  PyObject *expectations_obj;
+  const char *d_name;
+  if (!PyArg_ParseTuple(args, "Os",
+        &expectations_obj, &d_name)) {
+    except = 1; goto end;
+  }
+  /* assert that the objects support the buffer interface */
+  PyObject *pyobjects[] = {expectations_obj};
+  char *names[] = {"the expectations vector"};
+  if (check_interfaces(1, pyobjects, names) < 0) {
+    except = 1; goto end;
+  }
+  /* get the buffer view for each object */
+  int flags = PyBUF_ND | PyBUF_FORMAT | PyBUF_C_CONTIGUOUS | PyBUF_WRITABLE;
+  if (PyObject_GetBuffer(expectations_obj, &expectations_buffer, flags) < 0) {
+    except = 1; goto end;
+  } else {
+    got_expectations_buffer = 1;
+  }
+  /* check the buffer shapes */
+  if (expectations_buffer.ndim != 1)
+  {
+    PyErr_SetString(HmmusbufError,
+        "the expectations vector should be one dimensional");
+    except = 1; goto end;
+  }
+  /* run the algorithm */
+  int nstates = expectations_buffer.shape[0];
+  if (do_state_expectations(nstates, expectations_buffer.buf, d_name))
+  {
+    PyErr_SetString(HmmusbufError, "state_expectations error");
+    except = 1; goto end;
+  }
+end:
+  /* cleanup */
+  if (got_expectations_buffer) {
+    PyBuffer_Release(&expectations_buffer);
+  }
+  /* return an appropriate value */
+  if (except) {
+    return NULL;
+  } else {
+    return Py_BuildValue("i", 42);
+  }
+}
+
+static PyObject *
+transition_expectations_python(PyObject *self, PyObject *args)
+{
+  int except = 0;
+  /* init buffer info */
+  int got_expectations_buffer = 0;
+  int got_trans_buffer = 0;
+  Py_buffer expectations_buffer;
+  Py_buffer trans_buffer;
+  /* read the args */
+  PyObject *expectations_obj;
+  PyObject *trans_obj;
+  const char *l_name;
+  const char *f_name;
+  const char *b_name;
+  if (!PyArg_ParseTuple(args, "OOsss",
+        &expectations_obj, &trans_obj,
+        &l_name, &f_name, &b_name)) {
+    except = 1; goto end;
+  }
+  /* assert that the objects support the buffer interface */
+  PyObject *pyobjects[] = {expectations_obj, trans_obj};
+  char *names[] = {"the expectations matrix", "the transition matrix"};
+  if (check_interfaces(2, pyobjects, names) < 0) {
+    except = 1; goto end;
+  }
+  /* get the buffer view for each object */
+  int flags = PyBUF_ND | PyBUF_FORMAT | PyBUF_C_CONTIGUOUS | PyBUF_WRITABLE;
+  if (PyObject_GetBuffer(expectations_obj, &expectations_buffer, flags) < 0) {
+    except = 1; goto end;
+  } else {
+    got_expectations_buffer = 1;
+  }
+  if (PyObject_GetBuffer(trans_obj, &trans_buffer, flags) < 0) {
+    except = 1; goto end;
+  } else {
+    got_trans_buffer = 1;
+  }
+  /* check the buffer shapes */
+  if (expectations_buffer.ndim != 2) {
+    PyErr_SetString(HmmusbufError,
+        "the expectations matrix should be two dimensional");
+    except = 1; goto end;
+  }
+  if (trans_buffer.ndim != 2) {
+    PyErr_SetString(HmmusbufError,
+        "the transition matrix should be two dimensional");
+    except = 1; goto end;
+  }
+  if (expectations_buffer.shape[0] != expectations_buffer.shape[1])
+  {
+    PyErr_SetString(HmmusbufError,
+        "the expectations matrix should be square");
+    except = 1; goto end;
+  }
+  if (trans_buffer.shape[0] != trans_buffer.shape[1])
+  {
+    PyErr_SetString(HmmusbufError,
+        "the transition matrix should be square");
+    except = 1; goto end;
+  }
+  if (expectations_buffer.shape[0] != trans_buffer.shape[0])
+  {
+    PyErr_SetString(HmmusbufError,
+        "the expectations and transition matrices should be the same size");
+    except = 1; goto end;
+  }
+  /* run the algorithm */
+  int nstates = expectations_buffer.shape[0];
+  if (do_transition_expectations(nstates,
+        trans_buffer.buf, expectations_buffer.buf,
+        l_name, f_name, b_name))
+  {
+    PyErr_SetString(HmmusbufError, "transition_expectations error");
+    except = 1; goto end;
+  }
+end:
+  /* cleanup */
+  if (got_expectations_buffer) {
+    PyBuffer_Release(&expectations_buffer);
+  }
+  if (got_trans_buffer) {
+    PyBuffer_Release(&trans_buffer);
+  }
+  /* return an appropriate value */
+  if (except) {
+    return NULL;
+  } else {
+    return Py_BuildValue("i", 42);
+  }
+}
+
+static PyObject *
 fwdbwd_somedisk_python(PyObject *self, PyObject *args)
 {
   int except = 0;
@@ -472,10 +618,10 @@ static PyMethodDef HmmusbufMethods[] = {
     "Posterior decoding "
     "using the new-style buffer interface."},
   {"state_expectations", state_expectations_python, METH_VARARGS,
-    "compute the expected amount of time spent in each state "
+    "Compute the expected amount of time spent in each state "
     "using the new-style buffer interface."},
   {"transition_expectations", transition_expectations_python, METH_VARARGS,
-    "compute the expected count of each transition "
+    "Compute the expected count of each transition "
     "using the new-style buffer interface."},
   {"fwdbwd_somedisk", fwdbwd_somedisk_python, METH_VARARGS,
     "Forward-backward algorithm with intermediate arrays in RAM, "
