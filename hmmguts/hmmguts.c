@@ -413,7 +413,6 @@ int transition_expectations_alldisk(int nstates, const double *trans,
         for (sink=0; sink<nstates; ++sink)
         {
           index = source * nstates + sink;
-
           x = f_old[source] * trans[index] * l_new[sink] * b_new[sink];
           expectations[index] = kahan_accum(
               expectations[index], compensations+index, x);
@@ -435,6 +434,48 @@ int transition_expectations_alldisk(int nstates, const double *trans,
   free(b_new);
   free(compensations);
   return 0;
+}
+
+int emission_expectations_alldisk(int nstates, int nalpha,
+    double *expectations, FILE *fi_v, FILE *fi_d)
+{
+  /*
+   * Compute the expected emissions from each state.
+   * @param nstates: the number of hidden states
+   * @param nalpha: the size of the alphabet, at most 256
+   */
+  int errcode = 0;
+  int i;
+  /* initialize compensations for kahan summation */
+  double *compensations = malloc(nstates*nalpha*sizeof(double));
+  for (i=0; i<nstates*nalpha; ++i)
+  {
+    compensations[i] = 0.0;
+  }
+  /* accumulate the expectations */
+  int index;
+  int nbytes;
+  unsigned char emission;
+  double *probabilities = malloc(nstates*sizeof(double));
+  while (fread(probabilities, sizeof(double), nstates, fi_d))
+  {
+    nbytes = fread(&emission, sizeof(unsigned char), 1, fi_v);
+    if (emission >= nalpha)
+    {
+      fprintf(stderr, "an observation is out of range\n");
+      errcode = -1; goto end;
+    }
+    for (i=0; i<nstates; i++)
+    {
+      index = i * nalpha + emission;
+      expectations[index] = kahan_accum(
+          expectations[index], compensations+index, probabilities[i]);
+    }
+  }
+end:
+  free(compensations);
+  free(probabilities);
+  return errcode;
 }
 
 int forward_somedisk(const struct TM *ptm, FILE *fin_l,
@@ -900,5 +941,32 @@ end:
   fsafeclose(fin_l);
   fsafeclose(fin_f);
   fsafeclose(fin_b);
+  return errcode;
+}
+
+int do_emission_expectations(int nstates, int nalpha, double *expectations,
+    const char *observation_name, const char *posterior_name)
+{
+  int errcode = 0;
+  FILE *fin_v = NULL;
+  FILE *fin_d = NULL;
+  if (!(fin_v = fopen(observation_name, "rb")))
+  {
+    fprintf(stderr, "failed to open the observation vector file for reading\n");
+    errcode = -1; goto end;
+  }
+  if (!(fin_d = fopen(posterior_name, "rb")))
+  {
+    fprintf(stderr, "failed to open the posterior vector file for reading\n");
+    errcode = -1; goto end;
+  }
+  if (emission_expectations_alldisk(
+      nstates, nalpha, expectations, fin_v, fin_d))
+  {
+    errcode = -1; goto end;
+  }
+end:
+  fsafeclose(fin_v);
+  fsafeclose(fin_d);
   return errcode;
 }

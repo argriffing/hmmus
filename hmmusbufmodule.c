@@ -531,6 +531,63 @@ end:
 }
 
 static PyObject *
+emission_expectations_python(PyObject *self, PyObject *args)
+{
+  int except = 0;
+  /* init buffer info */
+  int got_expectations_buffer = 0;
+  Py_buffer expectations_buffer;
+  /* read the args */
+  PyObject *expectations_obj;
+  const char *v_name;
+  const char *d_name;
+  if (!PyArg_ParseTuple(args, "Oss",
+        &expectations_obj, &v_name, &d_name)) {
+    except = 1; goto end;
+  }
+  /* assert that the objects support the buffer interface */
+  PyObject *pyobjects[] = {expectations_obj};
+  char *names[] = {"the expectations matrix"};
+  if (check_interfaces(1, pyobjects, names) < 0) {
+    except = 1; goto end;
+  }
+  /* get the buffer view for each object */
+  int flags = PyBUF_ND | PyBUF_FORMAT | PyBUF_C_CONTIGUOUS | PyBUF_WRITABLE;
+  if (PyObject_GetBuffer(expectations_obj, &expectations_buffer, flags) < 0) {
+    except = 1; goto end;
+  } else {
+    got_expectations_buffer = 1;
+  }
+  /* check the buffer shapes */
+  if (expectations_buffer.ndim != 2)
+  {
+    PyErr_SetString(HmmusbufError,
+        "the expectations matrix should be two dimensional");
+    except = 1; goto end;
+  }
+  /* run the algorithm */
+  int nstates = expectations_buffer.shape[0];
+  int nalpha = expectations_buffer.shape[1];
+  if (do_emission_expectations(nstates, nalpha, expectations_buffer.buf,
+        v_name, d_name))
+  {
+    PyErr_SetString(HmmusbufError, "emissions_expectations error");
+    except = 1; goto end;
+  }
+end:
+  /* cleanup */
+  if (got_expectations_buffer) {
+    PyBuffer_Release(&expectations_buffer);
+  }
+  /* return an appropriate value */
+  if (except) {
+    return NULL;
+  } else {
+    return Py_BuildValue("i", 42);
+  }
+}
+
+static PyObject *
 fwdbwd_somedisk_python(PyObject *self, PyObject *args)
 {
   int except = 0;
@@ -622,6 +679,10 @@ static PyMethodDef HmmusbufMethods[] = {
     "using the new-style buffer interface."},
   {"transition_expectations", transition_expectations_python, METH_VARARGS,
     "Compute the expected count of each transition "
+    "using the new-style buffer interface."},
+  {"emission_expectations", emission_expectations_python, METH_VARARGS,
+    "Compute the expected emission count of each element of the alphabet "
+    "for each hidden state "
     "using the new-style buffer interface."},
   {"fwdbwd_somedisk", fwdbwd_somedisk_python, METH_VARARGS,
     "Forward-backward algorithm with intermediate arrays in RAM, "

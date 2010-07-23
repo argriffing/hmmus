@@ -81,6 +81,9 @@ class EddyDemo(Demo):
     ftp://selab.janelia.org/pub/publications/Eddy-ATG4/Eddy-ATG4-reprint.pdf
     """
 
+    def get_nalpha(self):
+        return 5
+
     def get_distribution(self):
         p_E = 1.0
         p_5 = 0.0
@@ -96,7 +99,7 @@ class EddyDemo(Demo):
             [0.0, 0.0, 0.0, 1.0]])
 
     def get_likelihoods(self):
-        observations = 'CTTCATGTGAAAGCAGACGTAAGTCAx'
+        observations = self.get_observations()
         d_E = {'A':0.25, 'C':0.25, 'G':0.25, 'T':0.25, 'x':0.0}
         d_5 = {'A':0.05, 'C':0.00, 'G':0.95, 'T':0.00, 'x':0.0}
         d_I = {'A':0.40, 'C':0.10, 'G':0.10, 'T':0.40, 'x':0.0}
@@ -105,6 +108,14 @@ class EddyDemo(Demo):
         for distn in distns:
             assert abs(1.0 - sum(distn.values())) < 1e-10
         return np.array([[d[obs] for d in distns] for obs in observations])
+
+    def get_observations(self):
+        return 'CTTCATGTGAAAGCAGACGTAAGTCAx'
+
+    def get_int8_observations(self):
+        observations = self.get_observations()
+        c_to_int8 = {'A':0, 'C':1, 'G':2, 'T':3, 'x':4}
+        return np.array([c_to_int8[x] for x in observations], dtype=np.int8)
 
     def get_expected_scaling(self):
         """
@@ -249,11 +260,21 @@ class EddyDemo(Demo):
             [  0.,           0.,           6.30879651,   1.        ],
             [  0.,           0.,           0.,           0.        ]])
 
+    def get_expected_emission_expectations(self):
+        return np.array([
+            [ 5.95486273,  3.64338648,  3.82944037,  4.2635139,   0.  ],
+            [ 0.02617222,  0.,          0.97382778,  0.,          0.  ],
+            [ 3.01896505,  1.35661352,  1.19673184,  1.7364861,   0.  ],
+            [ 0.,          0.,          0.,          0.,          1.  ]])
+
 
 class SmithDemo(Demo):
     """
     http://www.cs.cmu.edu/~nasmith/papers/smith.tut04a.pdf
     """
+
+    def get_nalpha(self):
+        return 3
 
     def get_distribution(self):
         p_1 = 1.0
@@ -268,7 +289,7 @@ class SmithDemo(Demo):
                 [0, 0, 1.0]])
 
     def get_likelihoods(self):
-        observations = 'XXXXx'
+        observations = self.get_observations()
         d_1 = {'X':7/8.0, 'Y':1/8.0, 'x':0.00}
         d_2 = {'X':1/16.0, 'Y':15/16.0, 'x':0.00}
         d_x = {'X':0.00, 'Y':0.00, 'x':1.00}
@@ -276,6 +297,14 @@ class SmithDemo(Demo):
         for distn in distns:
             assert abs(1.0 - sum(distn.values())) < 1e-10
         return np.array([[d[obs] for d in distns] for obs in observations])
+
+    def get_observations(self):
+        return 'XXXXx'
+
+    def get_int8_observations(self):
+        observations = self.get_observations()
+        c_to_int8 = {'X':0, 'Y':1, 'x':2}
+        return np.array([c_to_int8[x] for x in observations], dtype=np.int8)
 
     def get_expected_scaling(self):
         """
@@ -329,3 +358,9 @@ class SmithDemo(Demo):
             [ 1.15761535,  1.06574112,  0.65455288],
             [ 0.720294,    0.05634953,  0.34544712],
             [ 0.,          0.,          0.        ]])
+
+    def get_expected_emission_expectations(self):
+        return np.array([
+            [ 2.87790935,  0.,          0.        ],
+            [ 1.12209065,  0.,          0.        ],
+            [ 0.,          0.,          1.        ]])

@@ -2,6 +2,7 @@
 #define HMMGUTS
 
 /*
+ * v: observation
  * l: likelihood
  * f: forward
  * s: scaling
@@ -60,6 +61,9 @@ int state_expectations_alldisk(int nstates,
 int transition_expectations_alldisk(int nstates, const double *trans,
     double *expectations, FILE *fi_l, FILE *fi_f, FILE *fi_b);
 
+int emission_expectations(int nstates, int nalpha,
+    double *expectations, FILE *fi_v, FILE *fi_d);
+
 
 int forward_somedisk(const struct TM *ptm, FILE *fin_l,
     double *f_big, double *s_big);
@@ -108,6 +112,9 @@ int do_transition_expectations(int nstates, const double *trans,
     double *expectations,
     const char *likelihoods_name, const char *forward_name,
     const char *backward_name);
+
+int do_emission_expectations(int nstates, int nalpha, double *expectations, 
+    const char *observation_name, const char *posterior_name);
 
 int do_fwdbwd_somedisk(const struct TM *ptm,
     const char *likelihoods_name, const char *posterior_name);

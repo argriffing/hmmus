@@ -19,13 +19,15 @@ class TempFileManager:
     def redefine_filenames(self):
         self.fn_distn = mktemp(prefix='distn.', suffix='.bin')
         self.fn_trans = mktemp(prefix='trans.', suffix='.bin')
+        self.fn_observation = mktemp(prefix='observation.', suffix='.bin')
         self.fn_likelihood = mktemp(prefix='likelihood.', suffix='.bin')
         self.fn_forward = mktemp(prefix='forward.', suffix='.bin')
         self.fn_scaling = mktemp(prefix='scaling.', suffix='.bin')
         self.fn_backward = mktemp(prefix='backward.', suffix='.bin')
         self.fn_posterior = mktemp(prefix='posterior.', suffix='.bin')
         self.input_filenames = set([
-                self.fn_distn, self.fn_trans, self.fn_likelihood])
+                self.fn_distn, self.fn_trans,
+                self.fn_observation, self.fn_likelihood])
         self.output_filenames = set([
                 self.fn_forward, self.fn_scaling, 
                 self.fn_backward, self.fn_posterior])
@@ -51,33 +53,50 @@ class TestHmm(unittest.TestCase):
 
     def help_test_posterior_expectations(self, d, tfm):
         """
-        Do two tests.
+        Do some alldisk tests of posterior expectation.
         Test the expected amount of time spent in each state.
         Test the expected count of each transition.
+        Test the expectation of each emission symbol from each state.
         @param d: a demo instance
         @param tfm: temp file manager
         """
-        n = d.get_nstates()
+        # initialize some counts
+        nstates = d.get_nstates()
+        nalpha = d.get_nalpha()
         # test the state expectations
-        e_expectations = d.get_expected_state_expectations()
-        o_expectations = np.zeros(n)
-        hmm.state_expectations(o_expectations, tfm.fn_posterior)
-        self.assertTrue(np.allclose(e_expectations, o_expectations),
-                'state expectations regression testing error')
+        e_state_expectations = d.get_expected_state_expectations()
+        o_state_expectations = np.zeros(nstates)
+        hmm.state_expectations(o_state_expectations, tfm.fn_posterior)
+        ok = np.allclose(e_state_expectations, o_state_expectations)
+        self.assertTrue(ok, 'state expectations regression testing error')
         # test the transition expectations
-        e_expectations = d.get_expected_transition_expectations()
-        o_expectations = np.zeros((n, n))
+        e_transition_expectations = d.get_expected_transition_expectations()
+        o_transition_expectations = np.zeros((nstates, nstates))
         hmm.transition_expectations(
-                d.get_transitions(), o_expectations,
+                d.get_transitions(), o_transition_expectations,
                 tfm.fn_likelihood, tfm.fn_forward, tfm.fn_backward)
-        self.assertTrue(np.allclose(e_expectations, o_expectations),
-                'transition expectations regression testing error')
+        ok = np.allclose(e_transition_expectations, o_transition_expectations)
+        self.assertTrue(ok, 'transition expectations regression testing error')
+        # test the emission expectations
+        e_emission_expectations = d.get_expected_emission_expectations()
+        o_emission_expectations = np.zeros((nstates, nalpha))
+        hmm.emission_expectations(o_emission_expectations,
+                tfm.fn_observation, tfm.fn_posterior)
+        ok = np.allclose(e_emission_expectations, o_emission_expectations)
+        self.assertTrue(ok, 'emission expectations regression testing error')
+        # the state expectations can be derived from emission expectations
+        recomputed_state_expectations = o_emission_expectations.sum(axis=1)
+        ok = np.allclose(recomputed_state_expectations, e_state_expectations)
+        self.assertTrue(ok, 'compatibility regression testing error')
 
     def help_test_fwdbwd_alldisk(self, d):
         """
         @param d: a demo instance
         """
         tfm = TempFileManager()
+        # create the file of observations
+        with open(tfm.fn_observation, 'wb') as fout:
+            d.get_int8_observations().tofile(fout)
         # create the file of likelihoods
         with open(tfm.fn_likelihood, 'wb') as fout:
             d.get_likelihoods().tofile(fout)

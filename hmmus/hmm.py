@@ -105,6 +105,21 @@ def transition_expectations(trans, expectations,
     return hmmusbuf.transition_expectations(trans, expectations,
         likelihoods_name, forward_name, backward_name)
 
+def emission_expectations(expectations, observation_name, posterior_name):
+    """
+    Compute emission expectations per state.
+    Note that emissions are assumed to be from a small alphabet
+    where each element of the alphabet fits in a byte.
+    The expectations matrix should be a numpy array
+    with the number of rows equal to the number of hidden states
+    and with the number of columns equal to the size of the emission alphabet.
+    @param expectations: a 2d numpy array to be filled by this function
+    @param observation_name: the observation vector filename
+    @param posterior_name: the posterior vector filename
+    """
+    return hmmusbuf.emission_expectations(expectations,
+            observation_name, posterior_name)
+
 def fwdbwd_alldisk(distribution, transitions,
         likelihoods_name,
         forward_name, scaling_name, backward_name,
