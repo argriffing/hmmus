@@ -8,7 +8,13 @@ import argparse
 import numpy as np
 
 
-class DurbinDemo:
+class Demo:
+
+    def get_nstates(self):
+        return len(self.get_distribution())
+
+
+class DurbinDemo(Demo):
     """
     From the book Biological Sequence Analysis.
     """
@@ -69,7 +75,7 @@ class DurbinDemo:
         return np.array([[d[obs] for d in distns] for obs in observations])
 
 
-class EddyDemo:
+class EddyDemo(Demo):
     """
     NATURE BIOTECHNOLOGY VOLUME 22 NUMBER 10 OCTOBER 2004
     ftp://selab.janelia.org/pub/publications/Eddy-ATG4/Eddy-ATG4-reprint.pdf
@@ -233,8 +239,18 @@ class EddyDemo:
             [4.44444444e+00, 2.19003771e-01, 1.97103394e-01, 0.00000000e+00],
             [4.00000000e+00, 3.15365430e-01, 2.83828887e-01, 0.00000000e+00]])
 
+    def get_expected_state_expectations(self):
+        return np.array([17.69120349, 1.0, 7.30879651, 1.0])
 
-class SmithDemo:
+    def get_expected_transition_expectations(self):
+        return np.array([
+            [ 16.69120349,   1.,           0.,           0.        ],
+            [  0.,           0.,           1.,           0.        ],
+            [  0.,           0.,           6.30879651,   1.        ],
+            [  0.,           0.,           0.,           0.        ]])
+
+
+class SmithDemo(Demo):
     """
     http://www.cs.cmu.edu/~nasmith/papers/smith.tut04a.pdf
     """
@@ -304,3 +320,12 @@ class SmithDemo:
             [3.397305022458146, 7.839934667211106, 0.000000000000000],
             [4.730093915884034, 10.29644752960392, 0.000000000000000],
             [1.142857142857143, 2.548912092399230, 0.000000000000000]])
+
+    def get_expected_state_expectations(self):
+        return np.array([2.87790935, 1.12209065, 1.0])
+
+    def get_expected_transition_expectations(self):
+        return np.array([
+            [ 1.15761535,  1.06574112,  0.65455288],
+            [ 0.720294,    0.05634953,  0.34544712],
+            [ 0.,          0.,          0.        ]])

@@ -86,6 +86,25 @@ def posterior(distribution, transitions,
     return hmmusbuf.posterior(np_distn, np_trans,
         forward_name, scaling_name, backward_name, posterior_name)
 
+def state_expectations(expectations, posterior_name):
+    """
+    @param expectations: a 1d numpy array to be filled by this function
+    @param posterior_name: the posterior vector filename
+    """
+    return hmmusbuf.state_expectations(expectations, posterior_name)
+
+def transition_expectations(trans, expectations,
+        likelihoods_name, forward_name, backward_name):
+    """
+    @param trans: the transition matrix
+    @param expectations: a 2d numpy array to be filled by this function
+    @param likelihoods_name: the likelihoods vector filename
+    @param forward_name: the forward vector filename
+    @param backward_name: the backward vector filename
+    """
+    return hmmusbuf.transition_expectations(trans, expectations,
+        likelihoods_name, forward_name, backward_name)
+
 def fwdbwd_alldisk(distribution, transitions,
         likelihoods_name,
         forward_name, scaling_name, backward_name,

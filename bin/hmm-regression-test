@@ -49,6 +49,30 @@ def check_shape(shape, arr, name):
 
 class TestHmm(unittest.TestCase):
 
+    def help_test_posterior_expectations(self, d, tfm):
+        """
+        Do two tests.
+        Test the expected amount of time spent in each state.
+        Test the expected count of each transition.
+        @param d: a demo instance
+        @param tfm: temp file manager
+        """
+        n = d.get_nstates()
+        # test the state expectations
+        e_expectations = d.get_expected_state_expectations()
+        o_expectations = np.zeros(n)
+        hmm.state_expectations(o_expectations, tfm.fn_posterior)
+        self.assertTrue(np.allclose(e_expectations, o_expectations),
+                'state expectations regression testing error')
+        # test the transition expectations
+        e_expectations = d.get_expected_transition_expectations()
+        o_expectations = np.zeros((n, n))
+        hmm.transition_expectations(
+                d.get_transitions(), o_expectations,
+                tfm.fn_likelihood, tfm.fn_forward, tfm.fn_backward)
+        self.assertTrue(np.allclose(e_expectations, o_expectations),
+                'transition expectations regression testing error')
+
     def help_test_fwdbwd_alldisk(self, d):
         """
         @param d: a demo instance
@@ -95,6 +119,8 @@ class TestHmm(unittest.TestCase):
                 (ex_post, ob_post, 'posterior')):
             self.assertTrue(np.allclose(expected, observed),
                     name + ' array mismatch')
+        # do more tests before deleting the files
+        self.help_test_posterior_expectations(d, tfm)
         # unlink all files
         tfm.unlink_all()
 

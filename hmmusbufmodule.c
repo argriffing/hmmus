@@ -454,43 +454,37 @@ transition_expectations_python(PyObject *self, PyObject *args)
   const char *f_name;
   const char *b_name;
   if (!PyArg_ParseTuple(args, "OOsss",
-        &expectations_obj, &trans_obj,
+        &trans_obj, &expectations_obj, 
         &l_name, &f_name, &b_name)) {
     except = 1; goto end;
   }
   /* assert that the objects support the buffer interface */
-  PyObject *pyobjects[] = {expectations_obj, trans_obj};
-  char *names[] = {"the expectations matrix", "the transition matrix"};
+  PyObject *pyobjects[] = {trans_obj, expectations_obj};
+  char *names[] = {"the transition matrix", "the expectations matrix"};
   if (check_interfaces(2, pyobjects, names) < 0) {
     except = 1; goto end;
   }
   /* get the buffer view for each object */
   int flags = PyBUF_ND | PyBUF_FORMAT | PyBUF_C_CONTIGUOUS | PyBUF_WRITABLE;
-  if (PyObject_GetBuffer(expectations_obj, &expectations_buffer, flags) < 0) {
-    except = 1; goto end;
-  } else {
-    got_expectations_buffer = 1;
-  }
   if (PyObject_GetBuffer(trans_obj, &trans_buffer, flags) < 0) {
     except = 1; goto end;
   } else {
     got_trans_buffer = 1;
   }
-  /* check the buffer shapes */
-  if (expectations_buffer.ndim != 2) {
-    PyErr_SetString(HmmusbufError,
-        "the expectations matrix should be two dimensional");
+  if (PyObject_GetBuffer(expectations_obj, &expectations_buffer, flags) < 0) {
     except = 1; goto end;
+  } else {
+    got_expectations_buffer = 1;
   }
+  /* check the buffer shapes */
   if (trans_buffer.ndim != 2) {
     PyErr_SetString(HmmusbufError,
         "the transition matrix should be two dimensional");
     except = 1; goto end;
   }
-  if (expectations_buffer.shape[0] != expectations_buffer.shape[1])
-  {
+  if (expectations_buffer.ndim != 2) {
     PyErr_SetString(HmmusbufError,
-        "the expectations matrix should be square");
+        "the expectations matrix should be two dimensional");
     except = 1; goto end;
   }
   if (trans_buffer.shape[0] != trans_buffer.shape[1])
@@ -499,10 +493,16 @@ transition_expectations_python(PyObject *self, PyObject *args)
         "the transition matrix should be square");
     except = 1; goto end;
   }
-  if (expectations_buffer.shape[0] != trans_buffer.shape[0])
+  if (expectations_buffer.shape[0] != expectations_buffer.shape[1])
   {
     PyErr_SetString(HmmusbufError,
-        "the expectations and transition matrices should be the same size");
+        "the expectations matrix should be square");
+    except = 1; goto end;
+  }
+  if (trans_buffer.shape[0] != expectations_buffer.shape[0])
+  {
+    PyErr_SetString(HmmusbufError,
+        "the transition and expectations matrices should be the same size");
     except = 1; goto end;
   }
   /* run the algorithm */
@@ -516,11 +516,11 @@ transition_expectations_python(PyObject *self, PyObject *args)
   }
 end:
   /* cleanup */
-  if (got_expectations_buffer) {
-    PyBuffer_Release(&expectations_buffer);
-  }
   if (got_trans_buffer) {
     PyBuffer_Release(&trans_buffer);
+  }
+  if (got_expectations_buffer) {
+    PyBuffer_Release(&expectations_buffer);
   }
   /* return an appropriate value */
   if (except) {

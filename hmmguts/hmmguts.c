@@ -356,7 +356,7 @@ int state_expectations_alldisk(int nstates, double *expectations, FILE *fi_d)
   }
   while (fread(probabilities, sizeof(double), nstates, fi_d))
   {
-    for (i=0; i<3; i++)
+    for (i=0; i<nstates; i++)
     {
       expectations[i] = kahan_accum(
           expectations[i], compensations+i, probabilities[i]);
@@ -373,6 +373,7 @@ int transition_expectations_alldisk(int nstates, const double *trans,
   /*
    * Implementation is from my tested ExternalHMM python code.
    */
+  int i;
   size_t nbytes;
   int result;
   /* seek to near the end of the backward file */
@@ -384,6 +385,10 @@ int transition_expectations_alldisk(int nstates, const double *trans,
   }
   /* initialize compensations for kahan summation of transitions */
   double *compensations = malloc(nstates*nstates*sizeof(double));
+  for (i=0; i<nstates*nstates; ++i)
+  {
+    compensations[i] = 0.0;
+  }
   /* initialize some states */
   double *l_old = malloc(nstates*sizeof(double));
   double *f_old = malloc(nstates*sizeof(double));
@@ -394,23 +399,22 @@ int transition_expectations_alldisk(int nstates, const double *trans,
   double *tmp;
   int source, sink;
   int index;
-  double tprob;
   double x;
-  int is_first = 1;
+  int count = 0;
   do
   {
     nbytes = fread(l_new, sizeof(double), nstates, fi_l);
     nbytes = fread(f_new, sizeof(double), nstates, fi_f);
     nbytes = fread(b_new, sizeof(double), nstates, fi_b);
-    if (!is_first)
+    if (count)
     {
       for (source=0; source<nstates; ++source)
       {
         for (sink=0; sink<nstates; ++sink)
         {
           index = source * nstates + sink;
-          tprob = trans[index];
-          x = f_old[source] * tprob * l_new[sink] * b_new[sink];
+
+          x = f_old[source] * trans[index] * l_new[sink] * b_new[sink];
           expectations[index] = kahan_accum(
               expectations[index], compensations+index, x);
         }
@@ -419,7 +423,7 @@ int transition_expectations_alldisk(int nstates, const double *trans,
     tmp = l_old; l_old = l_new; l_new = tmp;
     tmp = f_old; f_old = f_new; f_new = tmp;
     tmp = b_old; b_old = b_new; b_new = tmp;
-    is_first = 0;
+    ++count;
     /* go back a bit */
     result = fseek(fi_b, -2*nstates*sizeof(double), SEEK_CUR);
   } while (!result);
