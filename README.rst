@@ -66,13 +66,23 @@ as follows::
     $ sudo apt-get install python-virtualenv
     $ sudo apt-get install python-pip
 
-Next use virtualenv to create a virtual python environment::
+Alternatively the development version can be downloaded::
 
-    $ virtualenv ~/myenv
+    $ hg clone http://bitbucket.org/ianb/virtualenv
+
+To use a binary installation of virtualenv
+to create a virtual python environment::
+
+    $ virtualenv /path/to/myenv
+
+Or to use the source installation of virtualenv
+to create a virtual python environment::
+
+    $ /go/to/virtualenv.py --distribute --python=/go/to/python /go/to/myenv
 
 Now activate the virtual environment::
 
-    $ . ~/myenv/bin/activate
+    $ . /path/to/myenv/bin/activate
 
 Installing required Python modules and packages
 -----------------------------------------------
