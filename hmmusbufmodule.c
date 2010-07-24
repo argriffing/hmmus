@@ -588,6 +588,63 @@ end:
 }
 
 static PyObject *
+finite_alphabet_likelihoods_python(PyObject *self, PyObject *args)
+{
+  int except = 0;
+  /* init buffer info */
+  int got_emission_buffer = 0;
+  Py_buffer emission_buffer;
+  /* read the args */
+  PyObject *emission_obj;
+  const char *v_name;
+  const char *l_name;
+  if (!PyArg_ParseTuple(args, "Oss",
+        &emission_obj, &v_name, &l_name)) {
+    except = 1; goto end;
+  }
+  /* assert that the objects support the buffer interface */
+  PyObject *pyobjects[] = {emission_obj};
+  char *names[] = {"the emission matrix"};
+  if (check_interfaces(1, pyobjects, names) < 0) {
+    except = 1; goto end;
+  }
+  /* get the buffer view for each object */
+  int flags = PyBUF_ND | PyBUF_FORMAT | PyBUF_C_CONTIGUOUS | PyBUF_WRITABLE;
+  if (PyObject_GetBuffer(emission_obj, &emission_buffer, flags) < 0) {
+    except = 1; goto end;
+  } else {
+    got_emission_buffer = 1;
+  }
+  /* check the buffer shapes */
+  if (emission_buffer.ndim != 2)
+  {
+    PyErr_SetString(HmmusbufError,
+        "the emission matrix should be two dimensional");
+    except = 1; goto end;
+  }
+  /* run the algorithm */
+  int nstates = emission_buffer.shape[0];
+  int nalpha = emission_buffer.shape[1];
+  if (do_finite_alphabet_likelihoods(nstates, nalpha, emission_buffer.buf,
+        v_name, l_name))
+  {
+    PyErr_SetString(HmmusbufError, "finite_alphabet_likelihoods error");
+    except = 1; goto end;
+  }
+end:
+  /* cleanup */
+  if (got_emission_buffer) {
+    PyBuffer_Release(&emission_buffer);
+  }
+  /* return an appropriate value */
+  if (except) {
+    return NULL;
+  } else {
+    return Py_BuildValue("i", 42);
+  }
+}
+
+static PyObject *
 fwdbwd_somedisk_python(PyObject *self, PyObject *args)
 {
   int except = 0;
@@ -665,29 +722,40 @@ end:
 
 
 static PyMethodDef HmmusbufMethods[] = {
-  {"forward", forward_python, METH_VARARGS,
+  {"forward",
+    forward_python, METH_VARARGS,
     "Forward algorithm "
     "using the new-style buffer interface."},
-  {"backward", backward_python, METH_VARARGS,
+  {"backward",
+    backward_python, METH_VARARGS,
     "Backward algorithm "
     "using the new-style buffer interface."},
-  {"posterior", posterior_python, METH_VARARGS,
+  {"posterior",
+    posterior_python, METH_VARARGS,
     "Posterior decoding "
     "using the new-style buffer interface."},
-  {"state_expectations", state_expectations_python, METH_VARARGS,
+  {"state_expectations",
+    state_expectations_python, METH_VARARGS,
     "Compute the expected amount of time spent in each state "
     "using the new-style buffer interface."},
-  {"transition_expectations", transition_expectations_python, METH_VARARGS,
+  {"transition_expectations",
+    transition_expectations_python, METH_VARARGS,
     "Compute the expected count of each transition "
     "using the new-style buffer interface."},
-  {"emission_expectations", emission_expectations_python, METH_VARARGS,
-    "Compute the expected emission count of each element of the alphabet "
-    "for each hidden state "
+  {"emission_expectations",
+    emission_expectations_python, METH_VARARGS,
+    "Compute emission expectations for each hidden state "
     "using the new-style buffer interface."},
-  {"fwdbwd_somedisk", fwdbwd_somedisk_python, METH_VARARGS,
+  {"finite_alphabet_likelihoods",
+    finite_alphabet_likelihoods_python, METH_VARARGS,
+    "Compute the likelihoods at each position of the observation vector "
+    "using the new-style buffer interface."},
+  {"fwdbwd_somedisk",
+    fwdbwd_somedisk_python, METH_VARARGS,
     "Forward-backward algorithm with intermediate arrays in RAM, "
     "using the new-style buffer interface."},
-  {"fwdbwd_nodisk", fwdbwd_nodisk_python, METH_VARARGS,
+  {"fwdbwd_nodisk",
+    fwdbwd_nodisk_python, METH_VARARGS,
     "Forward-backward algorithm with all arrays in RAM, "
     "using the new-style buffer interface."},
   {NULL, NULL, 0, NULL}

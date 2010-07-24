@@ -465,7 +465,7 @@ int emission_expectations_alldisk(int nstates, int nalpha,
       fprintf(stderr, "an observation is out of range\n");
       errcode = -1; goto end;
     }
-    for (i=0; i<nstates; i++)
+    for (i=0; i<nstates; ++i)
     {
       index = i * nalpha + emission;
       expectations[index] = kahan_accum(
@@ -475,6 +475,38 @@ int emission_expectations_alldisk(int nstates, int nalpha,
 end:
   free(compensations);
   free(probabilities);
+  return errcode;
+}
+
+int finite_alphabet_likelihoods_alldisk(int nstates, int nalpha,
+    const double *emissions, FILE *fi_v, FILE *fo_l)
+{
+  /*
+   * Write likelihoods given observations.
+   * This only works when the alphabet of observations is finite and small.
+   * In other situations the likelihoods must be computed by the user.
+   * @param nstates: the number of hidden states
+   * @param nalpha: the size of the alphabet, at most 256
+   * @param emissions: matrix with size (nstates, nalpha)
+   */
+  int errcode = 0;
+  int i;
+  int index;
+  unsigned char emission;
+  while (fread(&emission, sizeof(unsigned char), 1, fi_v))
+  {
+    if (emission >= nalpha)
+    {
+      fprintf(stderr, "an observation is out of range\n");
+      errcode = -1; goto end;
+    }
+    for (i=0; i<nstates; ++i)
+    {
+      index = i * nalpha + emission;
+      fwrite(emissions+index, sizeof(double), 1, fo_l);
+    }
+  }
+end:
   return errcode;
 }
 
@@ -968,5 +1000,33 @@ int do_emission_expectations(int nstates, int nalpha, double *expectations,
 end:
   fsafeclose(fin_v);
   fsafeclose(fin_d);
+  return errcode;
+}
+
+int do_finite_alphabet_likelihoods(int nstates, int nalpha,
+    const double *emissions,
+    const char *observation_name, const char *likelihood_name)
+{
+  int errcode = 0;
+  FILE *fin_v = NULL;
+  FILE *fout_l = NULL;
+  if (!(fin_v = fopen(observation_name, "rb")))
+  {
+    fprintf(stderr, "failed to open the observation vector file for reading\n");
+    errcode = -1; goto end;
+  }
+  if (!(fout_l = fopen(likelihood_name, "wb")))
+  {
+    fprintf(stderr, "failed to open the likelihood vector file for writing\n");
+    errcode = -1; goto end;
+  }
+  if (finite_alphabet_likelihoods_alldisk(
+      nstates, nalpha, emissions, fin_v, fout_l))
+  {
+    errcode = -1; goto end;
+  }
+end:
+  fsafeclose(fin_v);
+  fsafeclose(fout_l);
   return errcode;
 }

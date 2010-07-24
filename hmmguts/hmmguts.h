@@ -64,6 +64,9 @@ int transition_expectations_alldisk(int nstates, const double *trans,
 int emission_expectations_alldisk(int nstates, int nalpha,
     double *expectations, FILE *fi_v, FILE *fi_d);
 
+int finite_alphabet_likelihoods_alldisk(int nstates, int nalpha,
+    const double *emissions, FILE *fi_v, FILE *fo_l);
+
 
 int forward_somedisk(const struct TM *ptm, FILE *fin_l,
     double *f_big, double *s_big);
@@ -115,6 +118,10 @@ int do_transition_expectations(int nstates, const double *trans,
 
 int do_emission_expectations(int nstates, int nalpha, double *expectations, 
     const char *observation_name, const char *posterior_name);
+
+int do_finite_alphabet_likelihoods(int nstates, int nalpha,
+    const double *expectations,
+    const char *observation_name, const char *likelihood_name);
 
 int do_fwdbwd_somedisk(const struct TM *ptm,
     const char *likelihoods_name, const char *posterior_name);

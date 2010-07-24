@@ -55,6 +55,18 @@ def fasta_to_int8(raw_lines):
     arr = [g_letter_to_emission[c] for c in ''.join(data_lines)]
     return np.array(arr, dtype=np.int8)
 
+def observations_to_likelihoods(observations, emissions, fn_l):
+    """
+    Note that this function has been replaced by a C function.
+    The C function is finite_alphabet_likelihoods.
+    @param observations: a 1d vector of int8 observations
+    @param emissions: a matrix of emission probabilities per state
+    @param fn_l: name of the likelhoods filename to write
+    """
+    nstates = len(emissions)
+    arr = [[emissions[i][j] for i in range(nstates)] for j in observations]
+    np.array(arr, dtype=float).tofile(fn_l)
+
 def main():
     # define some initial hmm parameters
     nstates = 3
@@ -95,11 +107,8 @@ def main():
         print >> out
         if i == niterations-1:
             break
-        # construct the likelihoods
-        arr = [[emissions[i][j] for i in range(nstates)] for j in data]
-        likelihoods = np.array(arr, dtype=float)
-        # write the likelihoods file
-        likelihoods.tofile(fn_l)
+        # write the likelihoods
+        hmm.finite_alphabet_likelihoods(emissions, fn_v, fn_l)
         # do the forward and backward algorithm creating a ton of files
         hmm.fwdbwd_alldisk(distn, trans, fn_l, fn_f, fn_s, fn_b, fn_d)
         # get the posterior transition expectations

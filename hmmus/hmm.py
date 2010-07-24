@@ -120,6 +120,17 @@ def emission_expectations(expectations, observation_name, posterior_name):
     return hmmusbuf.emission_expectations(expectations,
             observation_name, posterior_name)
 
+def finite_alphabet_likelihoods(emissions,
+        observation_name, likelihood_name):
+    """
+    Write a likelihood vector file.
+    @param emissions: a 2d numpy array of emission probabilities per state
+    @param observation_name: the observation vector filename
+    @param likelihood_name: the likelihood vector filename
+    """
+    return hmmusbuf.finite_alphabet_likelihoods(emissions,
+            observation_name, likelihood_name)
+
 def fwdbwd_alldisk(distribution, transitions,
         likelihoods_name,
         forward_name, scaling_name, backward_name,
