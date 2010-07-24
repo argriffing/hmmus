@@ -61,7 +61,7 @@ int state_expectations_alldisk(int nstates,
 int transition_expectations_alldisk(int nstates, const double *trans,
     double *expectations, FILE *fi_l, FILE *fi_f, FILE *fi_b);
 
-int emission_expectations(int nstates, int nalpha,
+int emission_expectations_alldisk(int nstates, int nalpha,
     double *expectations, FILE *fi_v, FILE *fi_d);
 
 
