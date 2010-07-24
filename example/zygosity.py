@@ -2,6 +2,8 @@
 Analyze a fasta file.
 """
 
+from StringIO import StringIO
+
 import numpy as np
 from hmmus import hmm
 
@@ -70,34 +72,54 @@ def main():
     # read the fasta file
     with open('sample.fasta') as fin:
         data = fasta_to_int8(fin.readlines())
+    nobs = len(data)
     # write the observation file
     data.tofile(fn_v)
-    # construct the likelihoods
-    arr = [[emissions[i][j] for i in range(nstates)] for j in data]
-    likelihoods = np.array(arr, dtype=float)
-    # write the likelihoods file
-    likelihoods.tofile(fn_l)
-    # do the forward and backward algorithm creating a ton of files
-    hmm.fwdbwd_alldisk(distn, trans, fn_l, fn_f, fn_s, fn_b, fn_d)
-    # get the posterior transition expectations
-    trans_expectations = np.zeros((nstates, nstates))
-    hmm.transition_expectations(trans, trans_expectations, fn_l, fn_f, fn_b)
-    # get the posterior emission expectations
-    emission_expectations = np.zeros((nstates, nalpha))
-    hmm.emission_expectations(emission_expectations, fn_v, fn_d)
-    # print some stuff
-    print 'trans default:'
-    print trans
-    print
-    print 'emissions default:'
-    print emissions
-    print
-    print 'trans expectations:'
-    print trans_expectations
-    print
-    print 'emission expectations:'
-    print emission_expectations
-    print
+    # begin writing iteration summaries
+    out = StringIO()
+    # do a bunch of baum welch iterations
+    niterations = 10
+    for i in range(niterations):
+        # summarize the current state
+        print >> out, 'iteration %d:' % i
+        print >> out
+        print >> out, 'hidden state distribution:'
+        print >> out, distn
+        print >> out
+        print >> out, 'hidden state transition matrix:'
+        print >> out, trans
+        print >> out
+        print >> out, 'emission matrix'
+        print >> out, emissions
+        print >> out
+        print >> out
+        if i == niterations-1:
+            break
+        # construct the likelihoods
+        arr = [[emissions[i][j] for i in range(nstates)] for j in data]
+        likelihoods = np.array(arr, dtype=float)
+        # write the likelihoods file
+        likelihoods.tofile(fn_l)
+        # do the forward and backward algorithm creating a ton of files
+        hmm.fwdbwd_alldisk(distn, trans, fn_l, fn_f, fn_s, fn_b, fn_d)
+        # get the posterior transition expectations
+        trans_expectations = np.zeros((nstates, nstates))
+        hmm.transition_expectations(trans, trans_expectations, fn_l, fn_f, fn_b)
+        # get the posterior emission expectations
+        emission_expectations = np.zeros((nstates, nalpha))
+        hmm.emission_expectations(emission_expectations, fn_v, fn_d)
+        # update distn, trans, and emissions
+        distn = emission_expectations.sum(axis=1) / nobs
+        trans = np.array([r / r.sum() for r in trans_expectations])
+        emissions = np.array([r / r.sum() for r in emission_expectations])
+    # print the summary
+    with open('summary.txt', 'w') as fout:
+        print >> fout, out.getvalue()
+    # print the posterior distribution
+    posterior = np.fromfile(fn_d, dtype=float).reshape((nobs, nstates))
+    with open('post.txt', 'w') as fout:
+        for c, row in zip(data, posterior):
+            print >> fout, c, row.tolist()
 
 if __name__ == '__main__':
     main()
