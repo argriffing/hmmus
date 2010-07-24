@@ -67,7 +67,21 @@ def observations_to_likelihoods(observations, emissions, fn_l):
     arr = [[emissions[i][j] for i in range(nstates)] for j in observations]
     np.array(arr, dtype=float).tofile(fn_l)
 
-def main():
+def baum_welch_update(distn, emissions, trans,
+        fn_v, fn_l, fn_f, fn_s, fn_b, fn_d):
+    nstates, nalpha = emissions.shape
+    # initialize the expecations
+    trans_expectations = np.zeros((nstates, nstates))
+    emission_expectations = np.zeros((nstates, nalpha))
+    # do the baum welch iteration
+    hmm.finite_alphabet_likelihoods(emissions, fn_v, fn_l)
+    hmm.fwdbwd_alldisk(distn, trans, fn_l, fn_f, fn_s, fn_b, fn_d)
+    hmm.transition_expectations(trans, trans_expectations, fn_l, fn_f, fn_b)
+    hmm.emission_expectations(emission_expectations, fn_v, fn_d)
+    # return the expectations
+    return trans_expectations, emission_expectations
+
+def process(data, niterations, verbose):
     # define some initial hmm parameters
     nstates = 3
     nalpha = 3
@@ -81,16 +95,12 @@ def main():
     fn_s = 'scaling.bin'
     fn_b = 'backward.bin'
     fn_d = 'posterior.bin'
-    # read the fasta file
-    with open('sample.fasta') as fin:
-        data = fasta_to_int8(fin.readlines())
-    nobs = len(data)
     # write the observation file
+    nobs = len(data)
     data.tofile(fn_v)
     # begin writing iteration summaries
     out = StringIO()
     # do a bunch of baum welch iterations
-    niterations = 10
     for i in range(niterations):
         # summarize the current state
         print >> out, 'iteration %d:' % i
@@ -107,28 +117,34 @@ def main():
         print >> out
         if i == niterations-1:
             break
-        # write the likelihoods
-        hmm.finite_alphabet_likelihoods(emissions, fn_v, fn_l)
-        # do the forward and backward algorithm creating a ton of files
-        hmm.fwdbwd_alldisk(distn, trans, fn_l, fn_f, fn_s, fn_b, fn_d)
-        # get the posterior transition expectations
-        trans_expectations = np.zeros((nstates, nstates))
-        hmm.transition_expectations(trans, trans_expectations, fn_l, fn_f, fn_b)
-        # get the posterior emission expectations
-        emission_expectations = np.zeros((nstates, nalpha))
-        hmm.emission_expectations(emission_expectations, fn_v, fn_d)
+        # run the algorithms implemented in c
+        trans_expectations, emission_expectations = baum_welch_update(
+                distn, emissions, trans,
+                fn_v, fn_l, fn_f, fn_s, fn_b, fn_d)
         # update distn, trans, and emissions
         distn = emission_expectations.sum(axis=1) / nobs
         trans = np.array([r / r.sum() for r in trans_expectations])
         emissions = np.array([r / r.sum() for r in emission_expectations])
     # print the summary
-    with open('summary.txt', 'w') as fout:
+    with open('summary-sample-it200-data1x.txt', 'w') as fout:
         print >> fout, out.getvalue()
-    # print the posterior distribution
-    posterior = np.fromfile(fn_d, dtype=float).reshape((nobs, nstates))
-    with open('post.txt', 'w') as fout:
-        for c, row in zip(data, posterior):
-            print >> fout, c, row.tolist()
+    # print the posterior distribution if we are feeling verbose
+    if verbose:
+        posterior = np.fromfile(fn_d, dtype=float).reshape((nobs, nstates))
+        with open('post-sample-it200-data1x.txt', 'w') as fout:
+            for c, row in zip(data, posterior):
+                print >> fout, c, row.tolist()
+
+def main():
+    # read the fasta file
+    with open('sample.fasta') as fin:
+        data = fasta_to_int8(fin.readlines())
+    # increase the data size for fun
+    #data = np.hstack([data]*100)
+    # process the data
+    niterations = 200
+    verbose = True
+    process(data, niterations, verbose)
 
 if __name__ == '__main__':
     main()
