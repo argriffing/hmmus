@@ -131,6 +131,13 @@ def finite_alphabet_likelihoods(emissions,
     return hmmusbuf.finite_alphabet_likelihoods(emissions,
             observation_name, likelihood_name)
 
+def sequence_log_likelihood(scaling_name):
+    """
+    @param scaling_name: the scaling vector filename
+    @return: the sequence log likelihood
+    """
+    return hmmusbuf.sequence_log_likelihood(scaling_name)
+
 def fwdbwd_alldisk(distribution, transitions,
         likelihoods_name,
         forward_name, scaling_name, backward_name,

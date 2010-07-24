@@ -645,6 +645,31 @@ end:
 }
 
 static PyObject *
+sequence_log_likelihood_python(PyObject *self, PyObject *args)
+{
+  int except = 0;
+  double log_likelihood = 0.0;
+  /* read the args */
+  const char *s_name;
+  if (!PyArg_ParseTuple(args, "s", &s_name))
+  {
+    except = 1; goto end;
+  }
+  /* get the log likelihood */
+  if (do_sequence_log_likelihood(&log_likelihood, s_name))
+  {
+    PyErr_SetString(HmmusbufError, "sequence_log_likelihood error");
+    except = 1; goto end;
+  }
+end:
+  if (except) {
+    return NULL;
+  } else {
+    return Py_BuildValue("d", log_likelihood);
+  }
+}
+
+static PyObject *
 fwdbwd_somedisk_python(PyObject *self, PyObject *args)
 {
   int except = 0;
@@ -750,6 +775,9 @@ static PyMethodDef HmmusbufMethods[] = {
     finite_alphabet_likelihoods_python, METH_VARARGS,
     "Compute the likelihoods at each position of the observation vector "
     "using the new-style buffer interface."},
+  {"sequence_log_likelihood",
+    sequence_log_likelihood_python, METH_VARARGS,
+    "Compute the log likelihood of the observation sequence."},
   {"fwdbwd_somedisk",
     fwdbwd_somedisk_python, METH_VARARGS,
     "Forward-backward algorithm with intermediate arrays in RAM, "

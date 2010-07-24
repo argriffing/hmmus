@@ -3,6 +3,7 @@
 #include <string.h>
 #include <inttypes.h>
 #include <sys/stat.h>
+#include <math.h>
 
 #include "hmmguts.h"
 
@@ -506,6 +507,21 @@ int finite_alphabet_likelihoods_alldisk(int nstates, int nalpha,
       fwrite(emissions+index, sizeof(double), 1, fo_l);
     }
   }
+end:
+  return errcode;
+}
+
+int sequence_log_likelihood_alldisk(double *p, FILE *fi_s)
+{
+  int errcode = 0;
+  double accum = 0.0;
+  double compensation = 0.0;
+  double s;
+  while (fread(&s, sizeof(double), 1, fi_s))
+  {
+    accum = kahan_accum(accum, &compensation, log(s));
+  }
+  *p = accum;
 end:
   return errcode;
 }
@@ -1028,5 +1044,23 @@ int do_finite_alphabet_likelihoods(int nstates, int nalpha,
 end:
   fsafeclose(fin_v);
   fsafeclose(fout_l);
+  return errcode;
+}
+
+int do_sequence_log_likelihood(double *p, const char *scaling_name)
+{
+  int errcode = 0;
+  FILE *fin_s = NULL;
+  if (!(fin_s = fopen(scaling_name, "rb")))
+  {
+    fprintf(stderr, "failed to open the scaling vector file for reading\n");
+    errcode = -1; goto end;
+  }
+  if (sequence_log_likelihood_alldisk(p, fin_s))
+  {
+    errcode = -1; goto end;
+  }
+end:
+  fsafeclose(fin_s);
   return errcode;
 }

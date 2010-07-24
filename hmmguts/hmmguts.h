@@ -67,6 +67,8 @@ int emission_expectations_alldisk(int nstates, int nalpha,
 int finite_alphabet_likelihoods_alldisk(int nstates, int nalpha,
     const double *emissions, FILE *fi_v, FILE *fo_l);
 
+int sequence_log_likelihood_alldisk(double *p, FILE *fi_s);
+
 
 int forward_somedisk(const struct TM *ptm, FILE *fin_l,
     double *f_big, double *s_big);
@@ -125,6 +127,8 @@ int do_finite_alphabet_likelihoods(int nstates, int nalpha,
 
 int do_fwdbwd_somedisk(const struct TM *ptm,
     const char *likelihoods_name, const char *posterior_name);
+
+int do_sequence_log_likelihood(double *p, const char *scaling_name);
 
 
 #endif

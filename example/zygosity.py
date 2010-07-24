@@ -78,8 +78,9 @@ def baum_welch_update(distn, emissions, trans,
     hmm.fwdbwd_alldisk(distn, trans, fn_l, fn_f, fn_s, fn_b, fn_d)
     hmm.transition_expectations(trans, trans_expectations, fn_l, fn_f, fn_b)
     hmm.emission_expectations(emission_expectations, fn_v, fn_d)
+    log_likelihood = hmm.sequence_log_likelihood(fn_s)
     # return the expectations
-    return trans_expectations, emission_expectations
+    return log_likelihood, trans_expectations, emission_expectations
 
 def process(data, niterations, verbose):
     # define some initial hmm parameters
@@ -100,8 +101,16 @@ def process(data, niterations, verbose):
     data.tofile(fn_v)
     # begin writing iteration summaries
     out = StringIO()
+    # begin storing the log likelihoods
+    log_likelihoods = []
     # do a bunch of baum welch iterations
-    for i in range(niterations):
+    for i in range(niterations+1):
+        # run the algorithms implemented in c
+        triple = baum_welch_update(distn, emissions, trans,
+                fn_v, fn_l, fn_f, fn_s, fn_b, fn_d)
+        log_likelihood, trans_expectations, emission_expectations = triple
+        # store the log likelihood to print later
+        log_likelihoods.append(log_likelihood)
         # summarize the current state
         print >> out, 'iteration %d:' % i
         print >> out
@@ -114,20 +123,22 @@ def process(data, niterations, verbose):
         print >> out, 'emission matrix'
         print >> out, emissions
         print >> out
-        print >> out
-        if i == niterations-1:
+        print >> out, 'log likelihood:'
+        print >> out, log_likelihood
+        if i == niterations:
             break
-        # run the algorithms implemented in c
-        trans_expectations, emission_expectations = baum_welch_update(
-                distn, emissions, trans,
-                fn_v, fn_l, fn_f, fn_s, fn_b, fn_d)
-        # update distn, trans, and emissions
+        print >> out
+        print >> out
+        # update distn, trans, and emissions for the next iteration
         distn = emission_expectations.sum(axis=1) / nobs
         trans = np.array([r / r.sum() for r in trans_expectations])
         emissions = np.array([r / r.sum() for r in emission_expectations])
     # print the summary
     with open('summary-sample-it200-data1x.txt', 'w') as fout:
         print >> fout, out.getvalue()
+    # report the log likelihoods
+    with open('log-likelihoods.txt', 'w') as fout:
+        print >> fout, '\n'.join('%f' % x for x in log_likelihoods)
     # print the posterior distribution if we are feeling verbose
     if verbose:
         posterior = np.fromfile(fn_d, dtype=float).reshape((nobs, nstates))
