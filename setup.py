@@ -38,6 +38,10 @@ hmmusbuf = Extension(
         name='hmmusbuf',
         sources=['hmmusbufmodule.c', 'hmmguts/hmmguts.c'])
 
+hmmusnodisk = Extension(
+        name='hmmusnodisk',
+        sources=['hmmusnodiskmodule.c', 'hmmguts/hmmguts.c'])
+
 classifiers = [
         'Development Status :: 3 - Alpha',
         'Environment :: Console',
@@ -75,6 +79,6 @@ setup(
         classifiers = classifiers,
         platforms = ['Linux'],
         license = 'MIT',
-        ext_modules = [hmmusbuf],
+        ext_modules = [hmmusbuf, hmmusnodisk],
         packages = ['hmmus'],
         scripts = scripts)
