@@ -210,44 +210,104 @@ class TestHmmNoDisk(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        # abstract base class
-        raise NotImplementedError()
+        raise unittest.SkipTest()
 
     def get_demo(self):
-        # abstract base class
         raise NotImplementedError()
 
     def test_forward_nodisk(self):
+        d = self.get_demo()
+        distn = d.get_distribution()
+        trans = d.get_transitions()
+        likelihood = d.get_likelihoods()
+        forward = np.zeros_like(likelihood)
+        scaling = np.zeros(likelihood.shape[0])
         hmm.forward_nodisk(distn, trans, likelihood, forward, scaling)
+        expected_forward = d.get_expected_forward()
+        expected_scaling = d.get_expected_scaling()
+        self.assertTrue(np.allclose(forward, expected_forward))
+        self.assertTrue(np.allclose(scaling, expected_scaling))
 
     def test_backward_nodisk(self):
-        hmm.backward_nodisk(distn, trans, likelihood, forward, backward)
+        d = self.get_demo()
+        distn = d.get_distribution()
+        trans = d.get_transitions()
+        likelihood = d.get_likelihoods()
+        forward = np.zeros_like(likelihood)
+        scaling = np.zeros(likelihood.shape[0])
+        backward = np.zeros_like(likelihood)
+        hmm.forward_nodisk(distn, trans, likelihood, forward, scaling)
+        hmm.backward_nodisk(distn, trans, likelihood, scaling, backward)
+        expected_backward = d.get_expected_backward()
+        self.assertTrue(np.allclose(backward, expected_backward))
 
     def test_posterior_nodisk(self):
+        d = self.get_demo()
+        distn = d.get_distribution()
+        trans = d.get_transitions()
+        likelihood = d.get_likelihoods()
+        forward = np.zeros_like(likelihood)
+        scaling = np.zeros(likelihood.shape[0])
+        backward = np.zeros_like(likelihood)
+        posterior = np.zeros_like(likelihood)
+        hmm.forward_nodisk(distn, trans, likelihood, forward, scaling)
+        hmm.backward_nodisk(distn, trans, likelihood, scaling, backward)
         hmm.posterior_nodisk(
                 distn, trans, forward, scaling, backward, posterior)
-
-    def test_finite_alphabet_likelihoods_nodisk(self):
-        hmm.finite_alphabet_likelihoods_nodisk(emissions, obs, likelihood)
+        expected_posterior = d.get_expected_posterior()
+        self.assertTrue(np.allclose(posterior, expected_posterior))
 
     def test_transition_expectations_nodisk(self):
+        d = self.get_demo()
+        distn = d.get_distribution()
+        trans = d.get_transitions()
+        likelihood = d.get_likelihoods()
+        forward = np.zeros_like(likelihood)
+        scaling = np.zeros(likelihood.shape[0])
+        backward = np.zeros_like(likelihood)
+        hmm.forward_nodisk(distn, trans, likelihood, forward, scaling)
+        hmm.backward_nodisk(distn, trans, likelihood, scaling, backward)
+        trans_expect = np.zeros_like(trans)
         hmm.transition_expectations_nodisk(trans, trans_expect,
                 likelihood, forward, backward)
+        expected_trans_expect = d.get_expected_transition_expectations()
+        self.assertTrue(np.allclose(trans_expect, expected_trans_expect))
 
     def test_emission_expectations_nodisk(self):
+        d = self.get_demo()
+        distn = d.get_distribution()
+        trans = d.get_transitions()
+        likelihood = d.get_likelihoods()
+        forward = np.zeros_like(likelihood)
+        scaling = np.zeros(likelihood.shape[0])
+        backward = np.zeros_like(likelihood)
+        posterior = np.zeros_like(likelihood)
+        hmm.forward_nodisk(distn, trans, likelihood, forward, scaling)
+        hmm.backward_nodisk(distn, trans, likelihood, scaling, backward)
+        hmm.posterior_nodisk(
+                distn, trans, forward, scaling, backward, posterior)
+        emiss_expect = np.zeros((d.get_nstates(), d.get_nalpha()))
+        obs = d.get_int8_observations()
         hmm.emission_expectations_nodisk(emiss_expect, obs, posterior)
-
-    def test_sequence_log_likelihood_nodisk(self):
-        hmm.sequence_log_likelihood_nodisk(scaling)
+        expected_emiss_expect = d.get_expected_emission_expectations()
+        self.assertTrue(np.allclose(emiss_expect, expected_emiss_expect))
 
 
 class TestHmmNoDiskSmith(TestHmmNoDisk):
+
+    @classmethod
+    def setUpClass(cls):
+        pass
 
     def get_demo(self):
         return demo.SmithDemo()
 
 
 class TestHmmNoDiskEddy(TestHmmNoDisk):
+
+    @classmethod
+    def setUpClass(cls):
+        pass
 
     def get_demo(self):
         return demo.EddyDemo()

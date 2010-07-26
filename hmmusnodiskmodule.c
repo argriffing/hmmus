@@ -381,7 +381,7 @@ backward_python(PyObject *self, PyObject *args)
   struct baum bm;
   baum_init(&bm);
   if (!PyArg_ParseTuple(args, "OOOOO",
-        &bm.distn_obj, &bm.trans_obj, &bm.l_obj, &bm.f_obj, &bm.b_obj)) {
+        &bm.distn_obj, &bm.trans_obj, &bm.l_obj, &bm.s_obj, &bm.b_obj)) {
     except = 1; goto end;
   }
   if (baum_read_buffers(&bm) < 0) {
@@ -391,7 +391,7 @@ backward_python(PyObject *self, PyObject *args)
   tm.nstates = bm.nstates;
   tm.distn = bm.distn.buf;
   tm.trans = bm.trans.buf;
-  if (backward_nodisk(&tm, bm.nobs, bm.l.buf, bm.f.buf, bm.b.buf) < 0) {
+  if (backward_nodisk(&tm, bm.nobs, bm.l.buf, bm.s.buf, bm.b.buf) < 0) {
     PyErr_SetString(HmmusnodiskError, "backward algorithm error");
     except = 1; goto end;
   }

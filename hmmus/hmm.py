@@ -184,9 +184,9 @@ def forward_nodisk(distn, trans, likelihood, forward, scaling):
     #TODO add docs
     return hmmusnodisk.forward(distn, trans, likelihood, forward, scaling)
 
-def backward_nodisk(distn, trans, likelihood, forward, backward):
+def backward_nodisk(distn, trans, likelihood, scaling, backward):
     #TODO add docs
-    return hmmusnodisk.backward(distn, trans, likelihood, forward, backward)
+    return hmmusnodisk.backward(distn, trans, likelihood, scaling, backward)
 
 def posterior_nodisk(distn, trans, forward, scaling, backward, posterior):
     #TODO add docs
