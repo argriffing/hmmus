@@ -345,6 +345,94 @@ int baum_read_buffers(struct baum *p)
 }
 
 static PyObject *
+forward_python(PyObject *self, PyObject *args)
+{
+  int except = 0;
+  struct baum bm;
+  baum_init(&bm);
+  if (!PyArg_ParseTuple(args, "OOOOO",
+        &bm.distn_obj, &bm.trans_obj, &bm.l_obj, &bm.f_obj, &bm.s_obj)) {
+    except = 1; goto end;
+  }
+  if (baum_read_buffers(&bm) < 0) {
+    except = 1; goto end;
+  }
+  struct TM tm;
+  tm.nstates = bm.nstates;
+  tm.distn = bm.distn.buf;
+  tm.trans = bm.trans.buf;
+  if (forward_nodisk(&tm, bm.nobs, bm.l.buf, bm.f.buf, bm.s.buf) < 0) {
+    PyErr_SetString(HmmusnodiskError, "forward algorithm error");
+    except = 1; goto end;
+  }
+end:
+  bm_destroy(&bm);
+  if (except) {
+    return NULL;
+  } else {
+    return Py_BuildValue("i", 42);
+  }
+}
+
+static PyObject *
+backward_python(PyObject *self, PyObject *args)
+{
+  int except = 0;
+  struct baum bm;
+  baum_init(&bm);
+  if (!PyArg_ParseTuple(args, "OOOOO",
+        &bm.distn_obj, &bm.trans_obj, &bm.l_obj, &bm.f_obj, &bm.b_obj)) {
+    except = 1; goto end;
+  }
+  if (baum_read_buffers(&bm) < 0) {
+    except = 1; goto end;
+  }
+  struct TM tm;
+  tm.nstates = bm.nstates;
+  tm.distn = bm.distn.buf;
+  tm.trans = bm.trans.buf;
+  if (backward_nodisk(&tm, bm.nobs, bm.l.buf, bm.f.buf, bm.b.buf) < 0) {
+    PyErr_SetString(HmmusnodiskError, "backward algorithm error");
+    except = 1; goto end;
+  }
+end:
+  bm_destroy(&bm);
+  if (except) {
+    return NULL;
+  } else {
+    return Py_BuildValue("i", 42);
+  }
+}
+
+static PyObject *
+posterior_python(PyObject *self, PyObject *args)
+{
+  int except = 0;
+  struct baum bm;
+  baum_init(&bm);
+  if (!PyArg_ParseTuple(args, "OOOOOO",
+        &bm.distn_obj, &bm.trans_obj,
+        &bm.f_obj, &bm.s_obj, &bm.b_obj &bm.d_obj)) {
+    except = 1; goto end;
+  }
+  if (baum_read_buffers(&bm) < 0) {
+    except = 1; goto end;
+  }
+  if (posterior_nodisk(bm.nstates, bm.nobs,
+        bm.f.buf, bm.s.buf, bm.b.buf, bm.d.buf) < 0) {
+    PyErr_SetString(HmmusnodiskError, "posterior algorithm error");
+    except = 1; goto end;
+  }
+end:
+  bm_destroy(&bm);
+  if (except) {
+    return NULL;
+  } else {
+    return Py_BuildValue("i", 42);
+  }
+}
+
+static PyObject *
 finite_alphabet_likelihoods_python(PyObject *self, PyObject *args)
 {
   int except = 0;
@@ -457,9 +545,15 @@ static PyMethodDef HmmusnodiskMethods[] = {
   {"finite_alphabet_likelihoods",
     finite_alphabet_likelihoods_python, METH_VARARGS,
     "Compute the likelihoods at each position of the observation vector."},
-  {"forward_backward",
-    forward_backward_python, METH_VARARGS,
-    "Do the forward-backward algorithm."},
+  {"forward",
+    forward_python, METH_VARARGS,
+    "Do the forward algorithm."},
+  {"backward",
+    backward_python, METH_VARARGS,
+    "Do the backward algorithm."},
+  {"posterior",
+    posterior_python, METH_VARARGS,
+    "Do probabilistic decoding."},
   {"transition_expectations",
     transition_expectations_python, METH_VARARGS,
     "Compute the expected count of each transition."},
