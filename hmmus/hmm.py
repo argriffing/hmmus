@@ -7,6 +7,7 @@ import itertools
 import numpy as np
 
 import hmmusbuf
+import hmmusnodisk
 
 def is_stochastic_vector(v):
     if len(v.shape) != 1:
@@ -177,3 +178,35 @@ def fwdbwd_nodisk(distribution, transitions, np_likelihoods):
     np_posterior = np.zeros_like(np_likelihoods)
     hmmusbuf.fwdbwd_nodisk(np_distn, np_trans, np_likelihoods, np_posterior)
     return np_posterior
+
+
+def forward_nodisk(distn, trans, likelihood, forward, scaling):
+    #TODO add docs
+    return hmmusnodisk.forward(distn, trans, likelihood, forward, scaling)
+
+def backward_nodisk(distn, trans, likelihood, forward, backward):
+    #TODO add docs
+    return hmmusnodisk.backward(distn, trans, likelihood, forward, backward)
+
+def posterior_nodisk(distn, trans, forward, scaling, backward, posterior):
+    #TODO add docs
+    return hmmusnodisk.posterior(
+            distn, trans, forward, scaling, backward, posterior)
+
+def finite_alphabet_likelihoods_nodisk(emissions, obs, likelihood):
+    #TODO add docs
+    return hmmusnodisk.finite_alphabet_likelihoods(emissions, obs, likelihood)
+
+def transition_expectations_nodisk(trans, trans_expect,
+        likelihood, forward, backward):
+    #TODO add docs
+    return hmmusnodisk.transition_expectations(trans, trans_expect,
+        likelihood, forward, backward)
+
+def emission_expectations_nodisk(emiss_expect, obs, posterior):
+    #TODO add docs
+    return hmmusnodisk.emission_expectations(emiss_expect, obs, posterior)
+
+def sequence_log_likelihood_nodisk(scaling):
+    #TODO add docs
+    return hmmusnodisk.sequence_log_likelihood(scaling)
