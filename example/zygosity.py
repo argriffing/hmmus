@@ -254,8 +254,10 @@ def main(args):
     # report the posterior distribution
     if args.posterior:
         posterior = bm.get_posterior()
-        with open(args.posterior, 'w') as fout:
-            write_posterior_text(args.posterior, raw_observations, posterior)
+        hmm.pretty_print_posterior(
+                raw_observations, posterior, 60, args.posterior)
+        #with open(args.posterior, 'w') as fout:
+        #   write_posterior_text(args.posterior, raw_observations, posterior)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

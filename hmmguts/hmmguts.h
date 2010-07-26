@@ -1,6 +1,8 @@
 #ifndef HMMGUTS
 #define HMMGUTS
 
+#include <stdio.h>
+
 /*
  * v: observation
  * l: likelihood
@@ -24,6 +26,8 @@ struct TM
 };
 
 double kahan_accum(double accum, double *pcompensation, double x);
+
+int fsafeclose(FILE *f);
 
 double* get_doubles(int ndoubles, const char *filename);
 

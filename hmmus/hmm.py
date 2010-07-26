@@ -209,3 +209,9 @@ def emission_expectations_nodisk(emiss_expect, obs, posterior):
 def sequence_log_likelihood_nodisk(scaling):
     #TODO add docs
     return hmmusnodisk.sequence_log_likelihood(scaling)
+
+
+def pretty_print_posterior(raw_observations, posterior, ncols, filename):
+    #TODO add docs
+    return hmmusnodisk.pretty_print_posterior(
+            raw_observations, posterior, ncols, filename)

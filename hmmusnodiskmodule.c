@@ -547,6 +547,86 @@ end:
   }
 }
 
+char probability_to_symbol(double probability)
+{
+  if (probability < 0.1) return '0';
+  if (probability < 0.2) return '1';
+  if (probability < 0.3) return '2';
+  if (probability < 0.4) return '3';
+  if (probability < 0.5) return '4';
+  if (probability < 0.6) return '5';
+  if (probability < 0.7) return '6';
+  if (probability < 0.8) return '7';
+  if (probability < 0.9) return '8';
+  return '9';
+}
+
+static PyObject *
+pretty_print_posterior_python(PyObject *self, PyObject *args)
+{
+  int except = 0;
+  /* baum object for only the posterior */
+  struct baum bm;
+  baum_init(&bm);
+  /* declare the output file C object initialized to NULL for safe closing */
+  FILE *fout = NULL;
+  /* declare the vanilla args */
+  const char *obs;
+  int ncols;
+  const char *filename;
+  /* read the args */
+  if (!PyArg_ParseTuple(args, "sOis",
+        &obs, &bm.d_obj, &ncols, &filename)) {
+    except = 1; goto end;
+  }
+  if (baum_read_buffers(&bm) < 0) {
+    except = 1; goto end;
+  }
+  /* open the file for writing */
+  fout = fopen(filename, "wt");
+  if (fout == NULL)
+  {
+    PyErr_SetString(HmmusnodiskError, "failed to open the output file");
+    except = 1; goto end;
+  }
+  /* begin doing the interesting stuff */
+  int nwholegroups = bm.nobs / ncols;
+  int nremainder = bm.nobs % ncols;
+  int ngroups = nwholegroups + (nremainder ? 1 : 0);
+  int igroup;
+  int icol;
+  int istate;
+  double probability;
+  for (igroup=0; igroup<ngroups; ++igroup)
+  {
+    if (igroup) fputc('\n', fout);
+    int current_ncols = ncols;
+    if (igroup == ngroups-1 && nremainder != 0) current_ncols = nremainder;
+    /* write the observation line */
+    for (icol=0; icol<current_ncols; ++icol) {
+      fputc(obs[igroup*ncols + icol], fout);
+    }
+    fputc('\n', fout);
+    /* write the posterior probability lines per state */
+    for (istate=0; istate<bm.nstates; ++istate) {
+      for (icol=0; icol<current_ncols; ++icol) {
+        int obs_offset = igroup*ncols + icol;
+        probability = ((double *) bm.d.buf)[obs_offset*bm.nstates + istate];
+        fputc(probability_to_symbol(probability), fout);
+      }
+      fputc('\n', fout);
+    }
+  }
+end:
+  baum_destroy(&bm);
+  fsafeclose(fout);
+  if (except) {
+    return NULL;
+  } else {
+    return Py_BuildValue("i", 42);
+  }
+}
+
 static PyMethodDef HmmusnodiskMethods[] = {
   {"finite_alphabet_likelihoods",
     finite_alphabet_likelihoods_python, METH_VARARGS,
@@ -569,6 +649,9 @@ static PyMethodDef HmmusnodiskMethods[] = {
   {"sequence_log_likelihood",
     sequence_log_likelihood_python, METH_VARARGS,
     "Compute the log likelihood of the observation sequence."},
+  {"pretty_print_posterior",
+    pretty_print_posterior_python, METH_VARARGS,
+    "Write an ascii representation of the probabilistic posterior to a file."},
   {NULL, NULL, 0, NULL}
 };
 
