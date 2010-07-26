@@ -9,7 +9,8 @@ include TODO
 include FAQ
 
 include setup.py
-include hmmuscmodule.c
+include hmmusbufmodule.c
+include hmmusnodiskmodule.c
 
 include hmmguts/hmmguts.c
 include hmmguts/hmmguts.h
