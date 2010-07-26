@@ -54,6 +54,7 @@ def get_default_emissions():
 
 def get_stationary_distribution(T):
     """
+    This is for non-baum-welch optimization.
     @param transition_matrix: a right stochastic matrix
     @return: a stochastic vector
     """
@@ -186,6 +187,22 @@ class BaumWelchRam(BaumWelch):
 
     def get_posterior(self):
         return self.d_big
+
+    def unpack_arg_tuple(self, arg_tuple):
+        """
+        @param arg_tuple: parameters defining two stochastic matrices
+        """
+        #TODO do this
+        pass
+
+    def __call__(self, arg_tuple):
+        """
+        This is called by a scipy black box function minimizer.
+        @param arg_tuple: parameters defining two stochastic matrices
+        """
+        self.unpack_arg_tuple(arg_tuple)
+        log_likelihood, trans_expect, emiss_expect = self.expectation_step()
+        return -log_likelihood
 
 
 def main(args):
