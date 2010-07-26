@@ -817,7 +817,7 @@ int transition_expectations_nodisk(int nstates, int nobs,
   /* initialize some states */
   const double *f_prev = f_big;
   const double *l_curr = l_big + nstates;
-  const double *b_curr = b_prev + nstates * (nobs - 2);
+  const double *b_curr = b_big + nstates * (nobs - 2);
   int source, sink;
   int index;
   double x;
@@ -858,7 +858,7 @@ int emission_expectations_nodisk(int nstates, int nalpha, int nobs,
   int obs_index;
   int expectations_index;
   int posterior_index;
-  for (obs_index=0; obs_index < nobs)
+  for (obs_index=0; obs_index < nobs; ++obs_index)
   {
     emission = v_big[obs_index];
     if (emission >= nalpha)

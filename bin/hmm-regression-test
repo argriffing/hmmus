@@ -206,6 +206,53 @@ class TestHmm(unittest.TestCase):
         self.help_test_fwdbwd_nodisk(demo.EddyDemo())
 
 
+class TestHmmNoDisk(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        # abstract base class
+        raise NotImplementedError()
+
+    def get_demo(self):
+        # abstract base class
+        raise NotImplementedError()
+
+    def test_forward_nodisk(self):
+        hmm.forward_nodisk(distn, trans, likelihood, forward, scaling)
+
+    def test_backward_nodisk(self):
+        hmm.backward_nodisk(distn, trans, likelihood, forward, backward)
+
+    def test_posterior_nodisk(self):
+        hmm.posterior_nodisk(
+                distn, trans, forward, scaling, backward, posterior)
+
+    def test_finite_alphabet_likelihoods_nodisk(self):
+        hmm.finite_alphabet_likelihoods_nodisk(emissions, obs, likelihood)
+
+    def test_transition_expectations_nodisk(self):
+        hmm.transition_expectations_nodisk(trans, trans_expect,
+                likelihood, forward, backward)
+
+    def test_emission_expectations_nodisk(self):
+        hmm.emission_expectations_nodisk(emiss_expect, obs, posterior)
+
+    def test_sequence_log_likelihood_nodisk(self):
+        hmm.sequence_log_likelihood_nodisk(scaling)
+
+
+class TestHmmNoDiskSmith(TestHmmNoDisk):
+
+    def get_demo(self):
+        return demo.SmithDemo()
+
+
+class TestHmmNoDiskEddy(TestHmmNoDisk):
+
+    def get_demo(self):
+        return demo.EddyDemo()
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     args = parser.parse_args()

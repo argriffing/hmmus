@@ -157,7 +157,7 @@ int check_ndim(Py_buffer *pbuf, int ndim, const char *name)
 int check_datatype_byte(Py_buffer *pbuf, const char *name)
 {
   char msg[1000];
-  const char fmt = pbuf->format;
+  const char *fmt = pbuf->format;
   if (fmt == NULL) {
     sprintf(msg, "%s has an undefined data type.", name);
     PyErr_SetString(HmmusnodiskError, msg);
@@ -174,7 +174,7 @@ int check_datatype_byte(Py_buffer *pbuf, const char *name)
 int check_datatype_double(Py_buffer *pbuf, const char *name)
 {
   char msg[1000];
-  const char fmt = pbuf->format;
+  const char *fmt = pbuf->format;
   if (fmt == NULL) {
     sprintf(msg, "%s has an undefined data type.", name);
     PyErr_SetString(HmmusnodiskError, msg);
@@ -366,7 +366,7 @@ forward_python(PyObject *self, PyObject *args)
     except = 1; goto end;
   }
 end:
-  bm_destroy(&bm);
+  baum_destroy(&bm);
   if (except) {
     return NULL;
   } else {
@@ -396,7 +396,7 @@ backward_python(PyObject *self, PyObject *args)
     except = 1; goto end;
   }
 end:
-  bm_destroy(&bm);
+  baum_destroy(&bm);
   if (except) {
     return NULL;
   } else {
@@ -412,7 +412,7 @@ posterior_python(PyObject *self, PyObject *args)
   baum_init(&bm);
   if (!PyArg_ParseTuple(args, "OOOOOO",
         &bm.distn_obj, &bm.trans_obj,
-        &bm.f_obj, &bm.s_obj, &bm.b_obj &bm.d_obj)) {
+        &bm.f_obj, &bm.s_obj, &bm.b_obj, &bm.d_obj)) {
     except = 1; goto end;
   }
   if (baum_read_buffers(&bm) < 0) {
@@ -424,7 +424,7 @@ posterior_python(PyObject *self, PyObject *args)
     except = 1; goto end;
   }
 end:
-  bm_destroy(&bm);
+  baum_destroy(&bm);
   if (except) {
     return NULL;
   } else {
@@ -451,7 +451,7 @@ finite_alphabet_likelihoods_python(PyObject *self, PyObject *args)
     except = 1; goto end;
   }
 end:
-  bm_destroy(&bm);
+  baum_destroy(&bm);
   if (except) {
     return NULL;
   } else {
@@ -476,7 +476,7 @@ transition_expectations_python(PyObject *self, PyObject *args)
   if (transition_expectations_nodisk(bm.nstates, bm.nobs,
         bm.trans.buf, bm.trans_expect.buf,
         bm.l.buf, bm.f.buf, bm.b.buf)) {
-    PyErr_SetString(HmmusbufError, "transition_expectations error");
+    PyErr_SetString(HmmusnodiskError, "transition_expectations error");
     except = 1; goto end;
   }
 end:
@@ -503,7 +503,7 @@ emission_expectations_python(PyObject *self, PyObject *args)
   }
   if (emission_expectations_nodisk(bm.nstates, bm.nalpha, bm.nobs,
         bm.emiss_expect.buf, bm.v.buf, bm.d.buf)) {
-    PyErr_SetString(HmmusbufError, "emissions_expectations error");
+    PyErr_SetString(HmmusnodiskError, "emissions_expectations error");
     except = 1; goto end;
   }
 end:
@@ -530,7 +530,7 @@ sequence_log_likelihood_python(PyObject *self, PyObject *args)
   }
   if (sequence_log_likelihood_nodisk(&log_likelihood, bm.nobs,
         bm.s.buf) < 0) {
-    PyErr_SetString(HmmusbufError, "sequence_log_likelihood error");
+    PyErr_SetString(HmmusnodiskError, "sequence_log_likelihood error");
     except = 1; goto end;
   }
 end:
