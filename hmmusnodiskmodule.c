@@ -85,42 +85,48 @@ int baum_destroy(struct baum *p)
 
 int baum_set_nobs(struct baum *p, int nobs)
 {
+  char msg[1000];
+  char s[] = "Args have incompatible numbers of observations: %d vs %d";
   if (p->nobs == -1) {
     p->nobs = nobs;
     return 0;
   } else if (p->nobs == nobs) {
     return 0;
   } else {
-    PyErr_SetString(HmmusnodiskError,
-        "The inputs imply incompatible numbers of observations.");
+    sprintf(msg, s, p->nobs, nobs);
+    PyErr_SetString(HmmusnodiskError, msg);
     return -1;
   }
 }
 
 int baum_set_nstates(struct baum *p, int nstates)
 {
+  char msg[1000];
+  char s[] = "Args have incompatible numbers of hidden states: %d vs %d";
   if (p->nstates == -1) {
     p->nstates = nstates;
     return 0;
   } else if (p->nstates == nstates) {
     return 0;
   } else {
-    PyErr_SetString(HmmusnodiskError,
-        "The inputs imply incompatible numbers of hidden states.");
+    sprintf(msg, s, p->nstates, nstates);
+    PyErr_SetString(HmmusnodiskError, msg);
     return -1;
   }
 }
 
 int baum_set_nalpha(struct baum *p, int nalpha)
 {
+  char msg[1000];
+  char s[] = "Args have incompatible alphabet sizes: %d vs %d";
   if (p->nalpha == -1) {
     p->nalpha = nalpha;
     return 0;
   } else if (p->nalpha == nalpha) {
     return 0;
   } else {
-    PyErr_SetString(HmmusnodiskError,
-        "The inputs imply incompatible finite observation alphabet sizes.");
+    sprintf(msg, s, p->nalpha, nalpha);
+    PyErr_SetString(HmmusnodiskError, msg);
     return -1;
   }
 }
@@ -410,8 +416,7 @@ posterior_python(PyObject *self, PyObject *args)
   int except = 0;
   struct baum bm;
   baum_init(&bm);
-  if (!PyArg_ParseTuple(args, "OOOOOO",
-        &bm.distn_obj, &bm.trans_obj,
+  if (!PyArg_ParseTuple(args, "OOOO",
         &bm.f_obj, &bm.s_obj, &bm.b_obj, &bm.d_obj)) {
     except = 1; goto end;
   }

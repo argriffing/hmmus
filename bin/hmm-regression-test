@@ -252,8 +252,7 @@ class TestHmmNoDisk(unittest.TestCase):
         posterior = np.zeros_like(likelihood)
         hmm.forward_nodisk(distn, trans, likelihood, forward, scaling)
         hmm.backward_nodisk(distn, trans, likelihood, scaling, backward)
-        hmm.posterior_nodisk(
-                distn, trans, forward, scaling, backward, posterior)
+        hmm.posterior_nodisk(forward, scaling, backward, posterior)
         expected_posterior = d.get_expected_posterior()
         self.assertTrue(np.allclose(posterior, expected_posterior))
 
@@ -284,8 +283,7 @@ class TestHmmNoDisk(unittest.TestCase):
         posterior = np.zeros_like(likelihood)
         hmm.forward_nodisk(distn, trans, likelihood, forward, scaling)
         hmm.backward_nodisk(distn, trans, likelihood, scaling, backward)
-        hmm.posterior_nodisk(
-                distn, trans, forward, scaling, backward, posterior)
+        hmm.posterior_nodisk(forward, scaling, backward, posterior)
         emiss_expect = np.zeros((d.get_nstates(), d.get_nalpha()))
         obs = d.get_int8_observations()
         hmm.emission_expectations_nodisk(emiss_expect, obs, posterior)

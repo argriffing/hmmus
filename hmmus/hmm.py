@@ -188,10 +188,9 @@ def backward_nodisk(distn, trans, likelihood, scaling, backward):
     #TODO add docs
     return hmmusnodisk.backward(distn, trans, likelihood, scaling, backward)
 
-def posterior_nodisk(distn, trans, forward, scaling, backward, posterior):
+def posterior_nodisk(forward, scaling, backward, posterior):
     #TODO add docs
-    return hmmusnodisk.posterior(
-            distn, trans, forward, scaling, backward, posterior)
+    return hmmusnodisk.posterior(forward, scaling, backward, posterior)
 
 def finite_alphabet_likelihoods_nodisk(emissions, obs, likelihood):
     #TODO add docs
