@@ -97,6 +97,20 @@ int posterior_nodisk(int nstates, size_t nobs,
 int fwdbwd_nodisk(const struct TM *ptm, size_t nobs,
     const double *l_big, double *d_big);
 
+int transition_expectations_nodisk(int nstates, int nobs,
+    const double *trans, double *expectations, 
+    const double *l_big, const double *f_big, const double *b_big);
+
+int emission_expectations_nodisk(int nstates, int nalpha, int nobs,
+    double *expectations,
+    const unsigned char *v_big, const double *d_big);
+
+int finite_alphabet_likelihoods_nodisk(int nstates, int nalpha, int nobs,
+    const double *emissions, 
+    const unsigned char *v_big, double *l_big);
+
+int sequence_log_likelihood_nodisk(double *p, int nobs, const double *s_big);
+
 
 int do_forward(const struct TM *ptm,
     const char *likelihoods_name, const char *forward_name,

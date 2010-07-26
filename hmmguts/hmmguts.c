@@ -513,7 +513,6 @@ end:
 
 int sequence_log_likelihood_alldisk(double *p, FILE *fi_s)
 {
-  int errcode = 0;
   double accum = 0.0;
   double compensation = 0.0;
   double s;
@@ -522,9 +521,9 @@ int sequence_log_likelihood_alldisk(double *p, FILE *fi_s)
     accum = kahan_accum(accum, &compensation, log(s));
   }
   *p = accum;
-end:
-  return errcode;
+  return 0;
 }
+
 
 int forward_somedisk(const struct TM *ptm, FILE *fin_l,
     double *f_big, double *s_big)
@@ -803,6 +802,126 @@ end:
   free(b_big);
   return errcode;
 }
+
+int transition_expectations_nodisk(int nstates, int nobs,
+    const double *trans, double *expectations, 
+    const double *l_big, const double *f_big, const double *b_big)
+{
+  int i;
+  /* initialize compensations for kahan summation of transitions */
+  double *compensations = malloc(nstates*nstates*sizeof(double));
+  for (i=0; i<nstates*nstates; ++i)
+  {
+    compensations[i] = 0.0;
+  }
+  /* initialize some states */
+  const double *f_prev = f_big;
+  const double *l_curr = l_big + nstates;
+  const double *b_curr = b_prev + nstates * (nobs - 2);
+  int source, sink;
+  int index;
+  double x;
+  for (i=0; i<nobs-1; i++)
+  {
+    for (source=0; source<nstates; ++source)
+    {
+      for (sink=0; sink<nstates; ++sink)
+      {
+        index = source * nstates + sink;
+        x = f_prev[source] * trans[index] * l_curr[sink] * b_curr[sink];
+        expectations[index] = kahan_accum(
+            expectations[index], compensations+index, x);
+      }
+    }
+    f_prev += nstates;
+    l_curr += nstates;
+    b_curr -= nstates;
+  }
+  free(compensations);
+  return 0;
+}
+
+int emission_expectations_nodisk(int nstates, int nalpha, int nobs,
+    double *expectations,
+    const unsigned char *v_big, const double *d_big)
+{
+  int errcode = 0;
+  int i;
+  /* initialize compensations for kahan summation */
+  double *compensations = malloc(nstates*nalpha*sizeof(double));
+  for (i=0; i<nstates*nalpha; ++i)
+  {
+    compensations[i] = 0.0;
+  }
+  /* accumulate the expectations */
+  unsigned char emission;
+  int obs_index;
+  int expectations_index;
+  int posterior_index;
+  for (obs_index=0; obs_index < nobs)
+  {
+    emission = v_big[obs_index];
+    if (emission >= nalpha)
+    {
+      fprintf(stderr, "an observation is out of range\n");
+      errcode = -1; goto end;
+    }
+    for (i=0; i<nstates; ++i)
+    {
+      expectations_index = i * nalpha + emission;
+      posterior_index = obs_index * nstates + i;
+      expectations[expectations_index] = kahan_accum(
+          expectations[expectations_index],
+          compensations+expectations_index, d_big[posterior_index]);
+    }
+  }
+end:
+  free(compensations);
+  return errcode;
+}
+
+int finite_alphabet_likelihoods_nodisk(int nstates, int nalpha, int nobs,
+    const double *emissions, 
+    const unsigned char *v_big, double *l_big)
+{
+  int errcode = 0;
+  int obs_index;
+  int i;
+  int emissions_index;
+  int likelihoods_index;
+  unsigned char emission;
+  for (obs_index=0; obs_index<nobs; ++obs_index)
+  {
+    emission = v_big[obs_index];
+    if (emission >= nalpha)
+    {
+      fprintf(stderr, "an observation is out of range\n");
+      errcode = -1; goto end;
+    }
+    for (i=0; i<nstates; ++i)
+    {
+      emissions_index = i * nalpha + emission;
+      likelihoods_index = obs_index * nstates + i;
+      l_big[likelihoods_index] = emissions[emissions_index];
+    }
+  }
+end:
+  return errcode;
+}
+
+int sequence_log_likelihood_nodisk(double *p, int nobs, const double *s_big)
+{
+  double accum = 0.0;
+  double compensation = 0.0;
+  int i;
+  for (i=0; i<nobs; i++)
+  {
+    accum = kahan_accum(accum, &compensation, log(s_big[i]));
+  }
+  *p = accum;
+  return 0;
+}
+
 
 
 int do_fwdbwd_somedisk(const struct TM *ptm,

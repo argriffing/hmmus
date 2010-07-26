@@ -445,7 +445,7 @@ finite_alphabet_likelihoods_python(PyObject *self, PyObject *args)
   if (baum_read_buffers(&bm) < 0) {
     except = 1; goto end;
   }
-  if (finite_alphabet_likelihoods_nodisk(bm.nstates, bm.nalpha,
+  if (finite_alphabet_likelihoods_nodisk(bm.nstates, bm.nalpha, bm.nobs,
         bm.emiss.buf, bm.v.buf, bm.l.buf) < 0) {
     PyErr_SetString(HmmusnodiskError, "finite_alphabet_likelihoods error");
     except = 1; goto end;
@@ -473,7 +473,7 @@ transition_expectations_python(PyObject *self, PyObject *args)
   if (baum_read_buffers(&bm) < 0) {
     except = 1; goto end;
   }
-  if (transition_expectations_nodisk(bm.nstates,
+  if (transition_expectations_nodisk(bm.nstates, bm.nobs,
         bm.trans.buf, bm.trans_expect.buf,
         bm.l.buf, bm.f.buf, bm.b.buf)) {
     PyErr_SetString(HmmusbufError, "transition_expectations error");
@@ -501,7 +501,7 @@ emission_expectations_python(PyObject *self, PyObject *args)
   if (baum_read_buffers(&bm) < 0) {
     except = 1; goto end;
   }
-  if (emission_expectations_nodisk(bm.nstates, bm.nalpha,
+  if (emission_expectations_nodisk(bm.nstates, bm.nalpha, bm.nobs,
         bm.emiss_expect.buf, bm.v.buf, bm.d.buf)) {
     PyErr_SetString(HmmusbufError, "emissions_expectations error");
     except = 1; goto end;
@@ -528,7 +528,8 @@ sequence_log_likelihood_python(PyObject *self, PyObject *args)
   if (baum_read_buffers(&bm) < 0) {
     except = 1; goto end;
   }
-  if (sequence_log_likelihood_nodisk(&log_likelihood, bm.s.buf) < 0) {
+  if (sequence_log_likelihood_nodisk(&log_likelihood, bm.nobs,
+        bm.s.buf) < 0) {
     PyErr_SetString(HmmusbufError, "sequence_log_likelihood error");
     except = 1; goto end;
   }
