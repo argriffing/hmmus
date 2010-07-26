@@ -7,6 +7,7 @@ import sys
 
 import argparse
 import numpy as np
+from scipy import optimize
 
 from hmmus import hmm
 
@@ -50,6 +51,29 @@ def get_default_emissions():
         [0.8, 0.1, 0.1],
         [0.1, 0.8, 0.1],
         [0.0, 0.0, 1.0]])
+
+def get_stationary_distribution(T):
+    """
+    @param transition_matrix: a right stochastic matrix
+    @return: a stochastic vector
+    """
+    # Do validation
+    nrows, ncols = T.shape
+    if nrows != ncols:
+        raise ValueError('expected a square transition matrix')
+    if not np.allclose(np.sum(T, axis=1), np.ones(ncols)):
+        raise ValueError('expected a right stochastic transition matrix')
+    # We want a left eigenvector of T.
+    # Numpy's eig gives only the right eigenvectors,
+    # so use the transpose of T.
+    w, VT = np.linalg.eig(T.T)
+    # We want the eigenvector that corresponds to the eigenvalue of 1.
+    # No eigenvalue should be greater than 1.
+    best_w, best_v = max((x, v) for x, v in zip(w, VT.T))
+    # The eigenvector might have tiny imaginary parts, so remove them.
+    best_v = np.array([abs(x) for x in best_v])
+    # Force the elements of the dominant eigenvector to sum to one.
+    return best_v / best_v.sum()
 
 def fasta_to_raw_observations(raw_lines):
     """
@@ -109,39 +133,6 @@ def baum_welch_update_ram(distn, emissions, trans,
     # return the expectations
     return log_likelihood, trans_expect, emiss_expect
 
-def gen_index_groups(total, groupsize):
-    """
-    @param total: total number of indices
-    @param groupsize: size of a group
-    """
-    ncompleted = 0
-    while ncompleted < total:
-        n = min(total-ncompleted, groupsize)
-        yield range(ncompleted, ncompleted+n)
-        ncompleted += n
-
-def get_float_line(floats):
-    """
-    @param floats: a sequence of floats between 0 and 1
-    """
-    arr = [min(9, max(0, int(x*10))) for x in floats]
-    return ''.join(str(x) for x in arr)
-
-def write_posterior_text(filename, raw_observations, posterior):
-    """
-    @param filename: write to this text file
-    @param raw_observations: a string with one character per raw observation
-    @param posterior: a 2d numpy array of state probabilites per position
-    """
-    nobs, nstates = posterior.shape
-    with open(filename, 'w') as fout:
-        for indices in gen_index_groups(nobs, 60):
-            low, high = indices[0], indices[0]+len(indices)
-            print >> fout, raw_observations[low:high]
-            chunk = posterior[low:high].T
-            for i in range(nstates):
-                print >> fout, get_float_line(chunk[i])
-            print >> fout
 
 class BaumWelch:
 
@@ -154,9 +145,10 @@ class BaumWelch:
         self.nobs = len(observations)
 
     def maximization_step(self, trans_expect, emiss_expect):
-        self.distn = emiss_expect.sum(axis=1) / self.nobs
         self.trans = np.array([r / r.sum() for r in trans_expect])
         self.emissions = np.array([r / r.sum() for r in emiss_expect])
+        #self.distn = emiss_expect.sum(axis=1) / self.nobs
+        self.distn = get_stationary_distribution(self.trans)
 
 
 class BaumWelchDisk(BaumWelch):
@@ -256,8 +248,6 @@ def main(args):
         posterior = bm.get_posterior()
         hmm.pretty_print_posterior(
                 raw_observations, posterior, 60, args.posterior)
-        #with open(args.posterior, 'w') as fout:
-        #   write_posterior_text(args.posterior, raw_observations, posterior)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
