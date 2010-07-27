@@ -215,3 +215,9 @@ def pretty_print_posterior(raw_observations, posterior, ncols, filename):
     #TODO add docs
     return hmmusnodisk.pretty_print_posterior(
             raw_observations, posterior, ncols, filename)
+
+def pretty_print_posterior_decoding(
+        raw_observations, posterior, ncols, filename):
+    #TODO add docs
+    return hmmusnodisk.pretty_print_posterior_decoding(
+            raw_observations, posterior, ncols, filename)

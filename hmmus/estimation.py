@@ -26,6 +26,27 @@ EVAL_LOG_LIKELIHOOD = 2
 EVAL_POSTERIOR = 3
 EVAL_ALL = 4
 
+def baum_welch(update, expect, trans, emiss, iterations, callback=None):
+    """
+    Do some Baum-Welch iterations.
+    The call style of this function mimics scipy.optimize.fmin.
+    There are differences so it cannot be used interchangeably with fmin.
+    @param update: call this to send new transition and emission matrices
+    @param expect: call this to get new transition and emission expectations
+    @param trans: initial transition matrix
+    @param emiss: initial emission matrix
+    @param iterations: do this many iterations
+    @param callback: send this the transitions and emissions after each update
+    """
+    for i in range(iterations+1):
+        update(trans, emiss)
+        callback(trans, emiss)
+        if i == iterations:
+            return
+        trans_expect, emiss_expect = expect()
+        trans = np.array([r / r.sum() for r in trans_expect])
+        emiss = np.array([r / r.sum() for r in emiss_expect])
+
 def get_stationary_distribution(T):
     """
     @param T: a right stochastic matrix
@@ -274,6 +295,30 @@ class FiniteModel:
         if self.eval_level < EVAL_ALL:
             self._eval_all()
         return self.trans_expect, self.emiss_expect
+
+    def get_trans(self):
+        return self.trans
+
+    def get_emiss(self):
+        return self.emiss
+
+    def get_trans_expect(self):
+        trans_expect, emiss_expect = self.get_expectations()
+        return trans_expect
+
+    def get_emiss_expect(self):
+        trans_expect, emiss_expect = self.get_expectations()
+        return emiss_expect
+
+    def fmin_objective(self, params):
+        """
+        This function should be called by a black box optimization framework.
+        @param params: serialized parameters describing some matrices
+        @return: the value of the objective function to be minimized
+        """
+        trans, emiss = self.deserialize_params(params)
+        self.update(trans, emiss)
+        return -self.get_log_likelihood()
     
 
 class TestEstimation(unittest.TestCase):
