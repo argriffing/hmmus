@@ -36,7 +36,8 @@ def get_stationary_distribution(T):
     if nrows != ncols:
         raise ValueError('expected a square transition matrix')
     if not np.allclose(np.sum(T, axis=1), np.ones(ncols)):
-        raise ValueError('expected a right stochastic transition matrix')
+        msg = 'expected a right stochastic transition matrix: ' + str(T)
+        raise ValueError(msg)
     # We want a left eigenvector of T.
     # Numpy's eig gives only the right eigenvectors,
     # so use the transpose of T.
@@ -147,6 +148,12 @@ class FiniteModel:
         @param emiss: a right stochastic emission matrix
         @param obs: a dtype np.int8 observation array
         """
+        if len(trans.shape) != 2:
+            raise ValueError('expected a two dimensional transition matrix')
+        if len(emiss.shape) != 2:
+            raise ValueError('expected a two dimensional emission matrix')
+        if len(obs.shape) != 1:
+            raise ValueError('expected a one dimensional observation matrix')
         # get some shapes
         self.nobs = obs.shape[0]
         self.nstates = emiss.shape[0]
@@ -217,7 +224,7 @@ class FiniteModel:
 
     def _eval_posterior(self):
         if self.eval_level < EVAL_LOG_LIKELIHOOD:
-            self._eval_stationary()
+            self._eval_log_likelihood()
         hmm.backward_nodisk(
                 self.distn, self.trans, self.l_big, self.s_big, self.b_big)
         hmm.posterior_nodisk(
@@ -226,7 +233,7 @@ class FiniteModel:
 
     def _eval_all(self):
         if self.eval_level < EVAL_POSTERIOR:
-            self._eval_stationary()
+            self._eval_posterior()
         self.trans_expect = np.zeros((self.nstates, self.nstates))
         self.emiss_expect = np.zeros((self.nstates, self.nalpha))
         hmm.transition_expectations_nodisk(
