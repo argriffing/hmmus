@@ -5,18 +5,20 @@ which we do not care about directly.
 An example of the estimation of HMM parameters is Baum-Welch.
 Baum-Welch is an EM algorithm for HMMs,
 but black box optimization is also possible.
-Matrices and vectors are numpy arrays.
 Another restriction for this estimation framework is that we
 assume that we see only a single sequence,
 and that the first element of the sequence is chosen
 according to the stationary distribution of the model,
 and that that sequence is ended at an arbitrary point.
+In this modules, matrices and vectors are numpy arrays.
 """
 
 import math
 import unittest
 
 import numpy as np
+
+from hmmus import hmm
 
 EVAL_NONE = 0
 EVAL_STATIONARY = 1
@@ -234,10 +236,37 @@ class FiniteModel:
                 self.emiss_expect, self.v_big, self.d_big)
         self.eval_level = max(self.eval_level, EVAL_ALL)
 
+    def get_distn(self):
+        """
+        @return: stationary distribution of hidden states
+        """
+        if self.eval_level < EVAL_STATIONARY:
+            self._eval_stationary()
+        return self.distn
+
     def get_log_likelihood(self):
+        """
+        @return: log likelihood
+        """
         if self.eval_level < EVAL_LOG_LIKELIHOOD:
             self._eval_log_likelihood()
         return self.log_likelihood
+
+    def get_posterior(self):
+        """
+        @return: posterior distribution over hidden states at each position
+        """
+        if self.eval_level < EVAL_POSTERIOR:
+            self._eval_log_likelihood()
+        return self.d_big
+
+    def get_expectations(self):
+        """
+        @return: transition expectations and emission expectations
+        """
+        if self.eval_level < EVAL_ALL:
+            self._eval_all()
+        return self.trans_expect, self.emiss_expect
     
 
 class TestEstimation(unittest.TestCase):
@@ -270,6 +299,6 @@ class TestEstimation(unittest.TestCase):
         o_params = self.m.serialize_params()
         self.assertTrue(np.allclose(e_params, o_params))
 
+
 if __name__ == '__main__':
     unittest.main()
-
