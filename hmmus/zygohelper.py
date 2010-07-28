@@ -125,7 +125,7 @@ def main(args, letter_to_emission, trans, emiss):
         hmm.pretty_print_posterior_decoding(raw_observations,
                 model.get_posterior(), 60, args.posterior_decoding + suffix)
 
-def run(description, letter_to_emission, trans, emiss):
+def run(letter_to_emission, trans, emiss, description=None):
     parser = argparse.ArgumentParser(description=description)
     parser.add_argument('--fasta', required=True,
             help='read this single sequence fasta file')

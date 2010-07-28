@@ -25,5 +25,5 @@ g_default_emiss = np.array([
     [0.5, 0.5]])
 
 if __name__ == '__main__':
-    zygohelper.run(__doc__,
-            g_letter_to_emission, g_default_trans, g_default_emiss)
+    zygohelper.run(
+            g_letter_to_emission, g_default_trans, g_default_emiss, __doc__)
