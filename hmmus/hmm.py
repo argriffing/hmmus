@@ -9,6 +9,8 @@ import numpy as np
 import hmmusbuf
 import hmmusnodisk
 
+MISSING = 127
+
 def is_stochastic_vector(v):
     if len(v.shape) != 1:
         return False
