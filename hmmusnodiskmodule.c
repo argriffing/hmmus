@@ -59,6 +59,7 @@ int baum_init(struct baum *p)
   p->emiss_obj = NULL;
   p->trans_expect_obj = NULL;
   p->emiss_expect_obj = NULL;
+  return 0;
 }
 
 int safe_buffer_release(Py_buffer *pbuf)

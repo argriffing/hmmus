@@ -12,6 +12,7 @@ import numpy as np
 
 from hmmus import demo
 from hmmus import hmm
+from hmmus import estimation
 
 class TempFileManager:
     def __init__(self):
@@ -206,17 +207,30 @@ class TestHmm(unittest.TestCase):
         self.help_test_fwdbwd_nodisk(demo.EddyDemo())
 
 
+class TestHmmMissingData(unittest.TestCase):
+
+    def test_missing(self):
+        trans = np.array([
+            [0.9, 0.1],
+            [0.1, 0.9]])
+        emiss = np.array([
+            [0.5, 0.5],
+            [0.7, 0.3]])
+        obs = np.array([127, 127, 127, 127], dtype=np.int8)
+        model = estimation.FiniteModel(trans, emiss, obs)
+        log_likelihood = model.get_log_likelihood()
+        self.assertTrue(log_likelihood == 0)
+
+
 class TestHmmNoDisk(unittest.TestCase):
 
-    @classmethod
-    def setUpClass(cls):
-        raise unittest.SkipTest()
-
     def get_demo(self):
-        raise NotImplementedError()
+        return None
 
     def test_forward_nodisk(self):
         d = self.get_demo()
+        if not d:
+            return
         distn = d.get_distribution()
         trans = d.get_transitions()
         likelihood = d.get_likelihoods()
@@ -230,6 +244,8 @@ class TestHmmNoDisk(unittest.TestCase):
 
     def test_backward_nodisk(self):
         d = self.get_demo()
+        if not d:
+            return
         distn = d.get_distribution()
         trans = d.get_transitions()
         likelihood = d.get_likelihoods()
@@ -243,6 +259,8 @@ class TestHmmNoDisk(unittest.TestCase):
 
     def test_posterior_nodisk(self):
         d = self.get_demo()
+        if not d:
+            return
         distn = d.get_distribution()
         trans = d.get_transitions()
         likelihood = d.get_likelihoods()
@@ -258,6 +276,8 @@ class TestHmmNoDisk(unittest.TestCase):
 
     def test_transition_expectations_nodisk(self):
         d = self.get_demo()
+        if not d:
+            return
         distn = d.get_distribution()
         trans = d.get_transitions()
         likelihood = d.get_likelihoods()
@@ -274,6 +294,8 @@ class TestHmmNoDisk(unittest.TestCase):
 
     def test_emission_expectations_nodisk(self):
         d = self.get_demo()
+        if not d:
+            return
         distn = d.get_distribution()
         trans = d.get_transitions()
         likelihood = d.get_likelihoods()
@@ -293,19 +315,11 @@ class TestHmmNoDisk(unittest.TestCase):
 
 class TestHmmNoDiskSmith(TestHmmNoDisk):
 
-    @classmethod
-    def setUpClass(cls):
-        pass
-
     def get_demo(self):
         return demo.SmithDemo()
 
 
 class TestHmmNoDiskEddy(TestHmmNoDisk):
-
-    @classmethod
-    def setUpClass(cls):
-        pass
 
     def get_demo(self):
         return demo.EddyDemo()

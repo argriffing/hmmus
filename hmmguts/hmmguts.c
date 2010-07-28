@@ -486,25 +486,31 @@ int finite_alphabet_likelihoods_alldisk(int nstates, int nalpha,
    * Write likelihoods given observations.
    * This only works when the alphabet of observations is finite and small.
    * In other situations the likelihoods must be computed by the user.
+   * Note that the observation 127 is reserved for missing data.
    * @param nstates: the number of hidden states
-   * @param nalpha: the size of the alphabet, at most 256
+   * @param nalpha: the size of the alphabet, less than 127
    * @param emissions: matrix with size (nstates, nalpha)
    */
   int errcode = 0;
   int i;
   int index;
   unsigned char emission;
+  double one = 1.0;
   while (fread(&emission, sizeof(unsigned char), 1, fi_v))
   {
-    if (emission >= nalpha)
-    {
-      fprintf(stderr, "an observation is out of range\n");
-      errcode = -1; goto end;
-    }
-    for (i=0; i<nstates; ++i)
-    {
-      index = i * nalpha + emission;
-      fwrite(emissions+index, sizeof(double), 1, fo_l);
+    if (emission == 127) {
+      for (i=0; i<nstates; ++i) {
+        fwrite(&one, sizeof(double), 1, fo_l);
+      }
+    } else {
+      if (emission >= nalpha) {
+        fprintf(stderr, "an observation is out of range\n");
+        errcode = -1; goto end;
+      }
+      for (i=0; i<nstates; ++i) {
+        index = i * nalpha + emission;
+        fwrite(emissions+index, sizeof(double), 1, fo_l);
+      }
     }
   }
 end:
@@ -893,16 +899,21 @@ int finite_alphabet_likelihoods_nodisk(int nstates, int nalpha, int nobs,
   for (obs_index=0; obs_index<nobs; ++obs_index)
   {
     emission = v_big[obs_index];
-    if (emission >= nalpha)
-    {
-      fprintf(stderr, "an observation is out of range\n");
-      errcode = -1; goto end;
-    }
-    for (i=0; i<nstates; ++i)
-    {
-      emissions_index = i * nalpha + emission;
-      likelihoods_index = obs_index * nstates + i;
-      l_big[likelihoods_index] = emissions[emissions_index];
+    if (emission == 127) {
+      for (i=0; i<nstates; ++i) {
+        likelihoods_index = obs_index * nstates + i;
+        l_big[likelihoods_index] = 1.0;
+      }
+    } else {
+      if (emission >= nalpha) {
+        fprintf(stderr, "an observation is out of range\n");
+        errcode = -1; goto end;
+      }
+      for (i=0; i<nstates; ++i) {
+        emissions_index = i * nalpha + emission;
+        likelihoods_index = obs_index * nstates + i;
+        l_big[likelihoods_index] = emissions[emissions_index];
+      }
     }
   }
 end:
