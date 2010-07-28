@@ -1,12 +1,7 @@
 include AUTHORS
-include CHANGELOG
 include COPYING
 include INSTALL
-include NEWS
 include README.rst
-include THANKS
-include TODO
-include FAQ
 
 include setup.py
 include hmmusbufmodule.c
