@@ -7,7 +7,6 @@ import sys
 
 import argparse
 import numpy as np
-from scipy import optimize
 
 from hmmus import hmm
 from hmmus import estimation
@@ -94,8 +93,8 @@ class Summary:
 
 
 def main(args, letter_to_emission, trans, emiss):
-    #TODO make the progress bar work again
-    # loading + initial state + iterations
+    if args.ticks and args.pbar:
+        raise ValueError('it is silly to use both ticks and a progress bar')
     if args.pbar:
         pbar = progress.Bar(1 + 1 + args.n)
     else:
@@ -108,22 +107,9 @@ def main(args, letter_to_emission, trans, emiss):
         pbar.increment()
     model = estimation.FiniteModel(trans, emiss, observations)
     summary = Summary(model, pbar, args.ticks)
-    if args.method == 'bw' or args.n <= 10:
-        estimation.baum_welch(
-            model.update, model.get_expectations, trans, emiss, args.n,
-            callback=summary.after_baum_welch)
-    else:
-        fmin_maxiter = args.n - 10
-        estimation.baum_welch(model.update, model.get_expectations,
-                trans, emiss, 5,
-            callback=summary.after_baum_welch)
-        optimize.fmin(model.fmin_objective,
-                model.serialize_params(),
-                maxiter=fmin_maxiter, callback=summary.after_fmin)
-        #TODO continue from best params not necessarily most recent
-        estimation.baum_welch(model.update, model.get_expectations,
-            model.get_trans(), model.get_emiss(), 5,
-            callback=summary.after_baum_welch)
+    estimation.baum_welch(
+        model.update, model.get_expectations, trans, emiss, args.n,
+        callback=summary.after_baum_welch)
     summary_text = summary.finish()
     suffix = args.common_suffix
     if args.summary:
@@ -139,8 +125,8 @@ def main(args, letter_to_emission, trans, emiss):
         hmm.pretty_print_posterior_decoding(raw_observations,
                 model.get_posterior(), 60, args.posterior_decoding + suffix)
 
-def run(letter_to_emission, trans, emiss):
-    parser = argparse.ArgumentParser()
+def run(description, letter_to_emission, trans, emiss):
+    parser = argparse.ArgumentParser(description=description)
     parser.add_argument('--fasta', required=True,
             help='read this single sequence fasta file')
     parser.add_argument('--ticks', action='store_true',
@@ -149,8 +135,6 @@ def run(letter_to_emission, trans, emiss):
             help='show a progress bar')
     parser.add_argument('--n', default=20, type=int,
             help='do this many total search iterations')
-    parser.add_argument('--method', choices=['bw', 'nm'], default='bw',
-            help='pure Baum-Welch vs. Nelder-Mead-supplemented search')
     parser.add_argument('--posterior_decoding',
             help='write a hard posterior decoding to this file')
     parser.add_argument('--posterior',

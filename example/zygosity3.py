@@ -1,5 +1,5 @@
 """
-Analyze a fasta file.
+Analyze a fasta file using a three-state HMM.
 """
 
 import numpy as np
@@ -30,7 +30,5 @@ g_default_emiss = np.array([
     [0.0, 0.0, 1.0]])
 
 if __name__ == '__main__':
-    zygohelper.run(
-            g_letter_to_emission,
-            g_default_trans,
-            g_default_emiss)
+    zygohelper.run(__doc__,
+            g_letter_to_emission, g_default_trans, g_default_emiss)
