@@ -145,4 +145,5 @@ def run(description, letter_to_emission, trans, emiss):
             help='write a summary of baum welch iterations to this file')
     parser.add_argument('--common_suffix', default='',
             help='this suffix is appended to output file names')
-    main(parser.parse_args(), letter_to_emission, trans, emiss)
+    main(parser.parse_args(), letter_to_emission,
+            np.array(trans), np.array(emiss))
