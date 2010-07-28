@@ -848,8 +848,7 @@ int transition_expectations_nodisk(int nstates, int nobs,
 }
 
 int emission_expectations_nodisk(int nstates, int nalpha, int nobs,
-    double *expectations,
-    const unsigned char *v_big, const double *d_big)
+    double *expectations, const unsigned char *v_big, const double *d_big)
 {
   int errcode = 0;
   int i;
@@ -867,13 +866,15 @@ int emission_expectations_nodisk(int nstates, int nalpha, int nobs,
   for (obs_index=0; obs_index < nobs; ++obs_index)
   {
     emission = v_big[obs_index];
-    if (emission >= nalpha)
-    {
+    if (emission == 127) {
+      /* missing data does not inform the emission expectations */
+      continue;
+    }
+    if (emission >= nalpha) {
       fprintf(stderr, "an observation is out of range\n");
       errcode = -1; goto end;
     }
-    for (i=0; i<nstates; ++i)
-    {
+    for (i=0; i<nstates; ++i) {
       expectations_index = i * nalpha + emission;
       posterior_index = obs_index * nstates + i;
       expectations[expectations_index] = kahan_accum(
