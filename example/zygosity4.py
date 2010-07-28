@@ -4,7 +4,7 @@ Analyze a fasta file using a four-state HMM.
 
 import numpy as np
 
-import zygohelper
+from hmmus import zygohelper
 
 # state 0: homozygous-rich
 # state 1: heterozygous-rich

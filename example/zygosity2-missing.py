@@ -4,7 +4,7 @@ Analyze a fasta file with missing data using two-state HMM.
 
 import numpy as np
 
-import zygohelper
+from hmmus import zygohelper
 
 # state 0: homozygous and missing
 # state 1: heterozygous
