@@ -272,6 +272,11 @@ class FiniteModel:
             self._eval_stationary()
         return self.distn
 
+    def get_forward(self):
+        if self.eval_level < EVAL_LOG_LIKELIHOOD:
+            self._eval_log_likelihood()
+        return self.forward
+
     def get_log_likelihood(self):
         """
         @return: log likelihood
@@ -279,6 +284,11 @@ class FiniteModel:
         if self.eval_level < EVAL_LOG_LIKELIHOOD:
             self._eval_log_likelihood()
         return self.log_likelihood
+
+    def get_backward(self):
+        if self.eval_level < EVAL_POSTERIOR:
+            self._eval_posterior()
+        return self.backward
 
     def get_posterior(self):
         """

@@ -314,15 +314,83 @@ class TestHmmNoDisk(unittest.TestCase):
 
 
 class TestHmmNoDiskSmith(TestHmmNoDisk):
-
     def get_demo(self):
         return demo.SmithDemo()
 
-
 class TestHmmNoDiskEddy(TestHmmNoDisk):
-
     def get_demo(self):
         return demo.EddyDemo()
+
+
+class TestHmmFiniteModel(unittest.TestCase):
+
+    def get_demo(self):
+        return None
+
+    def get_model(self):
+        d = self.get_demo()
+        if d:
+            distn = d.get_distribution()
+            trans = d.get_transitions()
+            obs = d.get_int8_observations()
+            return estimation.FiniteModel(distn, trans, obs)
+        else:
+            return None
+
+    def test_forward(self):
+        d = self.get_demo()
+        if not d:
+            return
+        m = self.get_model()
+        e_forward = d.get_expected_forward()
+        o_forward = m.get_forward()
+        self.assertTrue(np.allclose(e_forward, o_forward))
+
+    def test_backward(self):
+        d = self.get_demo()
+        if not d:
+            return
+        m = self.model()
+        e_backward = d.get_expected_backward()
+        o_backward = m.get_backward()
+        self.assertTrue(np.allclose(e_forward, o_forward))
+
+    def test_posterior(self):
+        d = self.get_demo()
+        if not d:
+            return
+        m = self.model()
+        e_posterior = d.get_expected_posterior()
+        o_posterior = m.get_posterior()
+        self.assertTrue(np.allclose(e_forward, o_forward))
+
+    def test_transition_expectations(self):
+        d = self.get_demo()
+        if not d:
+            return
+        m = self.model()
+        e_trans_expect = d.get_expected_transition_expectations()
+        o_trans_expect = m.get_trans_expect()
+        self.assertTrue(np.allclose(e_trans_expect, o_trans_expect))
+
+    def test_emission_expectations(self):
+        d = self.get_demo()
+        if not d:
+            return
+        m = self.model()
+        e_emiss_expect = d.get_expected_emission_expectations()
+        o_emiss_expect = m.get_emiss_expect()
+        self.assertTrue(np.allclose(e_emiss_expect, o_emiss_expect))
+
+
+class TestHmmFiniteModelSmith(TestHmmNoDisk):
+    def get_demo(self):
+        return demo.SmithDemo()
+
+class TestHmmFiniteModelEddy(TestHmmNoDisk):
+    def get_demo(self):
+        return demo.EddyDemo()
+
 
 
 if __name__ == '__main__':
