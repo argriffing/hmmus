@@ -94,6 +94,7 @@ class Summary:
 
 
 def main(args, letter_to_emission, trans, emiss):
+    #TODO make the progress bar work again
     # loading + initial state + iterations
     if args.pbar:
         pbar = progress.Bar(1 + 1 + args.n)
@@ -107,9 +108,22 @@ def main(args, letter_to_emission, trans, emiss):
         pbar.increment()
     model = estimation.FiniteModel(trans, emiss, observations)
     summary = Summary(model, pbar, args.ticks)
-    estimation.baum_welch(
-        model.update, model.get_expectations, trans, emiss, args.n,
-        callback=summary.after_baum_welch)
+    if args.method == 'bw' or args.n <= 10:
+        estimation.baum_welch(
+            model.update, model.get_expectations, trans, emiss, args.n,
+            callback=summary.after_baum_welch)
+    else:
+        fmin_maxiter = args.n - 10
+        estimation.baum_welch(model.update, model.get_expectations,
+                trans, emiss, 5,
+            callback=summary.after_baum_welch)
+        optimize.fmin(model.fmin_objective,
+                model.serialize_params(),
+                maxiter=fmin_maxiter, callback=summary.after_fmin)
+        #TODO continue from best params not necessarily most recent
+        estimation.baum_welch(model.update, model.get_expectations,
+            model.get_trans(), model.get_emiss(), 5,
+            callback=summary.after_baum_welch)
     summary_text = summary.finish()
     suffix = args.common_suffix
     if args.summary:
@@ -135,8 +149,8 @@ def run(letter_to_emission, trans, emiss):
             help='show a progress bar')
     parser.add_argument('--n', default=20, type=int,
             help='do this many total search iterations')
-    #parser.add_argument('--method', choices=['bw', 'nm'], default='bw',
-    #help='pure Baum-Welch vs. Nelder-Mead-supplemented search')
+    parser.add_argument('--method', choices=['bw', 'nm'], default='bw',
+            help='pure Baum-Welch vs. Nelder-Mead-supplemented search')
     parser.add_argument('--posterior_decoding',
             help='write a hard posterior decoding to this file')
     parser.add_argument('--posterior',
